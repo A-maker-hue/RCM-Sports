@@ -1517,7 +1517,9 @@ function submitComment(e) {
     saveArticlesToStorage();
     textInput.value = '';
     renderModalComments(article);
-} {
+}
+
+function filterByCategory(category) {
             currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => {
                 if (btn.dataset.category === category) {
