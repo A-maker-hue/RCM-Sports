@@ -1239,6 +1239,18 @@ html.dark ::-webkit-scrollbar-thumb {
     });
 }
 
+function prepareComments(article) {
+    article.comments = article.comments || [];
+
+    article.comments.forEach(comment => {
+        comment.id = comment.id || crypto.randomUUID();
+        comment.upvotes = Number(comment.upvotes) || 0;
+        comment.downvotes = Number(comment.downvotes) || 0;
+        comment.myVote = Number(comment.myVote) || 0;
+        comment.replies = comment.replies || [];
+    });
+}
+
 function renderModalComments(article) {
     prepareComments(article);
 
@@ -1472,9 +1484,7 @@ function submitComment(e) {
     saveArticlesToStorage();
     textInput.value = '';
     renderModalComments(article);
-}
-
-        function filterByCategory(category) {
+} {
             currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => {
                 if (btn.dataset.category === category) {
