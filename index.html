@@ -3,6 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+    let savedTheme = null;
+
+    try {
+        savedTheme = localStorage.getItem('rcm_sports_theme');
+    } catch {}
+
+    const useDarkMode = savedTheme === 'dark' ||
+        (savedTheme !== 'light' &&
+         window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    document.documentElement.classList.toggle('dark', useDarkMode);
+</script>
     <title>RCM SPORTS | Blog Deportivo</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -77,6 +90,90 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        /* Dark mode */
+html.dark {
+    color-scheme: dark;
+}
+
+html.dark body {
+    background-color: #0b1120;
+    color: #e2e8f0;
+}
+
+html.dark .bg-white,
+html.dark [class~="bg-white/95"] {
+    background-color: #111827;
+}
+
+html.dark .bg-slate-50 {
+    background-color: #0f172a;
+}
+
+html.dark .bg-slate-100,
+html.dark [class~="bg-slate-200/60"] {
+    background-color: #1e293b;
+}
+
+html.dark .bg-slate-200 {
+    background-color: #334155;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+    color: #e2e8f0;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+    color: #a8b5c7;
+}
+
+html.dark .text-slate-400 {
+    color: #94a3b8;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+    border-color: #334155;
+}
+
+html.dark .bg-pitch-50,
+html.dark .bg-pitch-100 {
+    background-color: #123526;
+}
+
+html.dark .border-pitch-200 {
+    border-color: #236344;
+}
+
+html.dark .text-pitch-600,
+html.dark .text-pitch-700,
+html.dark .text-pitch-800,
+html.dark .text-pitch-900 {
+    color: #4ade80;
+}
+
+html.dark [class~="hover:bg-slate-50"]:hover,
+html.dark [class~="hover:bg-slate-200"]:hover {
+    background-color: #334155;
+}
+
+html.dark [class~="hover:bg-pitch-50"]:hover {
+    background-color: #123526;
+}
+
+html.dark [class~="focus:bg-white"]:focus {
+    background-color: #1e293b;
+}
+
+html.dark ::-webkit-scrollbar-track {
+    background-color: #0f172a;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+    background-color: #475569;
+}
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-900 selection:bg-pitch-600 selection:text-white">
@@ -106,7 +203,17 @@
                 </div>
 
                 <!-- Admin Status & Header Actions -->
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-3"> <button
+    id="themeToggle"
+    type="button"
+    onclick="toggleDarkMode()"
+    aria-label="Activar modo oscuro"
+    aria-pressed="false"
+    title="Activar modo oscuro"
+    class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200
+           text-slate-600 flex items-center justify-center">
+    <i id="themeIcon" class="fa-solid fa-moon" aria-hidden="true"></i>
+</button>
                     
                     <!-- Guest State: Admin Login Button -->
                     <div id="guestAdminContainer">
@@ -1232,6 +1339,29 @@
                 btn.innerHTML = `<i class="fa-solid fa-link text-xs"></i>`;
             }, 2000);
         }
+        function updateThemeButton() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const button = document.getElementById('themeToggle');
+    const icon = document.getElementById('themeIcon');
+    const label = isDark ? 'Activar modo claro' : 'Activar modo oscuro';
+
+    icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    button.setAttribute('aria-label', label);
+    button.setAttribute('aria-pressed', String(isDark));
+    button.title = label;
+}
+
+function toggleDarkMode() {
+    const isDark = document.documentElement.classList.toggle('dark');
+
+    try {
+        localStorage.setItem('rcm_sports_theme', isDark ? 'dark' : 'light');
+    } catch {}
+
+    updateThemeButton();
+}
+
+updateThemeButton();
     </script>
 </body>
 </html>
