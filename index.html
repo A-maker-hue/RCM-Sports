@@ -1227,46 +1227,252 @@ html.dark ::-webkit-scrollbar-thumb {
             }
         }
 
-        function renderModalComments(article) {
-            const container = document.getElementById('modalCommentsList');
-            document.getElementById('modalCommentCount').innerText = article.comments.length;
+        function prepareComments(article) {
+    article.comments = article.comments || [];
 
-            if (article.comments.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Sin comentarios. ¡Sé el primero en opinar!</p>`;
-                return;
-            }
+    article.comments.forEach(comment => {
+        comment.id = comment.id || crypto.randomUUID();
+        comment.upvotes = Number(comment.upvotes) || 0;
+        comment.downvotes = Number(comment.downvotes) || 0;
+        comment.myVote = Number(comment.myVote) || 0;
+        comment.replies = comment.replies || [];
+    });
+}
 
-            container.innerHTML = article.comments.map(c => `
-                <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-1">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold text-slate-800">${c.author}</span>
-                        <span class="text-[10px] text-slate-400">${c.date}</span>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">${c.text}</p>
-                </div>
-            `).join('');
-        }
+function renderModalComments(article) {
+    prepareComments(article);
 
-        function submitComment(e) {
-            e.preventDefault();
-            if (!activeModalArticleId) return;
+    const container = document.getElementById('modalCommentsList');
+    container.replaceChildren();
 
-            const article = articles.find(a => a.id === activeModalArticleId);
-            const authorInput = document.getElementById('commentAuthor');
-            const textInput = document.getElementById('commentText');
+    const total = article.comments.reduce(
+        (count, comment) => count + 1 + comment.replies.length,
+        0
+    );
 
-            if (article && authorInput.value.trim() && textInput.value.trim()) {
-                article.comments.unshift({
-                    author: authorInput.value.trim(),
-                    text: textInput.value.trim(),
-                    date: 'Hace un momento'
-                });
+    document.getElementById('modalCommentCount').innerText = total;
 
-                saveArticlesToStorage();
-                textInput.value = '';
-                renderModalComments(article);
-            }
-        }
+    if (article.comments.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-xs text-slate-400 italic py-2';
+        empty.textContent = 'Sin comentarios. ¡Sé el primero en opinar!';
+        container.appendChild(empty);
+        return;
+    }
+
+    const sorted = [...article.comments].sort((a, b) => {
+        const scoreA = a.upvotes - a.downvotes;
+        const scoreB = b.upvotes - b.downvotes;
+        return scoreB - scoreA;
+    });
+
+    sorted.forEach(comment => {
+        const card = document.createElement('div');
+        card.className =
+            'bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3';
+
+        const header = document.createElement('div');
+        header.className = 'flex justify-between items-center gap-3';
+
+        const author = document.createElement('strong');
+        author.className = 'text-xs text-slate-800';
+        author.textContent = comment.author;
+
+        const date = document.createElement('span');
+        date.className = 'text-xs text-slate-400';
+        date.textContent = comment.date;
+
+        header.append(author, date);
+
+        const text = document.createElement('p');
+        text.className =
+            'text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words';
+        text.textContent = comment.text;
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center gap-4';
+
+        const upvote = document.createElement('button');
+        upvote.type = 'button';
+        upvote.className = 'text-xs font-bold text-pitch-600';
+        upvote.textContent = `▲ ${comment.upvotes}`;
+        upvote.setAttribute('aria-label', 'Votar a favor');
+        upvote.setAttribute(
+            'aria-pressed',
+            String(comment.myVote === 1)
+        );
+        upvote.onclick = () =>
+            voteComment(article.id, comment.id, 1);
+
+        const downvote = document.createElement('button');
+        downvote.type = 'button';
+        downvote.className = 'text-xs font-bold text-slate-500';
+        downvote.textContent = `▼ ${comment.downvotes}`;
+        downvote.setAttribute('aria-label', 'Votar en contra');
+        downvote.setAttribute(
+            'aria-pressed',
+            String(comment.myVote === -1)
+        );
+        downvote.onclick = () =>
+            voteComment(article.id, comment.id, -1);
+
+        const score = document.createElement('span');
+        score.className = 'text-xs text-slate-500';
+        score.textContent =
+            `${comment.upvotes - comment.downvotes} puntos`;
+
+        const replyButton = document.createElement('button');
+        replyButton.type = 'button';
+        replyButton.className =
+            'text-xs font-bold text-pitch-600 hover:underline';
+        replyButton.textContent = 'Responder';
+        replyButton.setAttribute('aria-expanded', 'false');
+
+        actions.append(upvote, downvote, score, replyButton);
+        card.append(header, text, actions);
+
+        comment.replies.forEach(reply => {
+            const replyCard = document.createElement('div');
+            replyCard.className =
+                'ml-4 border-l-2 border-pitch-200 pl-4 py-2 space-y-1';
+
+            const replyAuthor = document.createElement('strong');
+            replyAuthor.className = 'text-xs text-slate-800';
+            replyAuthor.textContent = reply.author;
+
+            const replyText = document.createElement('p');
+            replyText.className =
+                'text-sm text-slate-600 whitespace-pre-wrap break-words';
+            replyText.textContent = reply.text;
+
+            replyCard.append(replyAuthor, replyText);
+            card.appendChild(replyCard);
+        });
+
+        const form = document.createElement('form');
+        form.className = 'hidden space-y-2 pt-2';
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.required = true;
+        nameInput.maxLength = 80;
+        nameInput.placeholder = 'Tu nombre';
+        nameInput.setAttribute('aria-label', 'Tu nombre');
+        nameInput.className =
+            'w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800';
+
+        const replyInput = document.createElement('textarea');
+        replyInput.required = true;
+        replyInput.maxLength = 2000;
+        replyInput.rows = 3;
+        replyInput.placeholder = 'Escribe tu respuesta...';
+        replyInput.setAttribute('aria-label', 'Tu respuesta');
+        replyInput.className =
+            'w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800';
+
+        const submit = document.createElement('button');
+        submit.type = 'submit';
+        submit.className =
+            'bg-pitch-600 text-white rounded-lg px-4 py-2 text-xs font-bold';
+        submit.textContent = 'Publicar respuesta';
+
+        form.append(nameInput, replyInput, submit);
+
+        replyButton.onclick = () => {
+            const isHidden = form.classList.toggle('hidden');
+            replyButton.setAttribute(
+                'aria-expanded',
+                String(!isHidden)
+            );
+            replyButton.textContent = isHidden
+                ? 'Responder'
+                : 'Cancelar';
+
+            if (!isHidden) nameInput.focus();
+        };
+
+        form.onsubmit = event => {
+            event.preventDefault();
+
+            const name = nameInput.value.trim();
+            const replyText = replyInput.value.trim();
+
+            if (!name || !replyText) return;
+
+            comment.replies.push({
+                id: crypto.randomUUID(),
+                author: name,
+                text: replyText,
+                date: new Date().toLocaleDateString('es')
+            });
+
+            saveArticlesToStorage();
+            renderModalComments(article);
+        };
+
+        card.appendChild(form);
+        container.appendChild(card);
+    });
+
+    saveArticlesToStorage();
+}
+
+function voteComment(articleId, commentId, direction) {
+    const article = articles.find(a => a.id === articleId);
+    if (!article) return;
+
+    prepareComments(article);
+
+    const comment = article.comments.find(c => c.id === commentId);
+    if (!comment) return;
+
+    // Remove the previous vote.
+    if (comment.myVote === 1) comment.upvotes--;
+    if (comment.myVote === -1) comment.downvotes--;
+
+    // Clicking the same vote again removes it.
+    comment.myVote = comment.myVote === direction ? 0 : direction;
+
+    if (comment.myVote === 1) comment.upvotes++;
+    if (comment.myVote === -1) comment.downvotes++;
+
+    saveArticlesToStorage();
+    renderModalComments(article);
+}
+
+function submitComment(e) {
+    e.preventDefault();
+    if (!activeModalArticleId) return;
+
+    const article = articles.find(
+        a => a.id === activeModalArticleId
+    );
+
+    const authorInput = document.getElementById('commentAuthor');
+    const textInput = document.getElementById('commentText');
+
+    const author = authorInput.value.trim();
+    const text = textInput.value.trim();
+
+    if (!article || !author || !text) return;
+
+    prepareComments(article);
+
+    article.comments.unshift({
+        id: crypto.randomUUID(),
+        author: author.slice(0, 80),
+        text: text.slice(0, 2000),
+        date: new Date().toLocaleDateString('es'),
+        upvotes: 0,
+        downvotes: 0,
+        myVote: 0,
+        replies: []
+    });
+
+    saveArticlesToStorage();
+    textInput.value = '';
+    renderModalComments(article);
+}
 
         function filterByCategory(category) {
             currentCategory = category;
