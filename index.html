@@ -1227,18 +1227,6 @@ html.dark ::-webkit-scrollbar-thumb {
             }
         }
 
-        function prepareComments(article) {
-    article.comments = article.comments || [];
-
-    article.comments.forEach(comment => {
-        comment.id = comment.id || crypto.randomUUID();
-        comment.upvotes = Number(comment.upvotes) || 0;
-        comment.downvotes = Number(comment.downvotes) || 0;
-        comment.myVote = Number(comment.myVote) || 0;
-        comment.replies = comment.replies || [];
-    });
-}
-
 function prepareComments(article) {
     article.comments = article.comments || [];
 
@@ -1272,11 +1260,56 @@ function renderModalComments(article) {
         return;
     }
 
-    const sorted = [...article.comments].sort((a, b) => {
-        const scoreA = a.upvotes - a.downvotes;
-        const scoreB = b.upvotes - b.downvotes;
-        return scoreB - scoreA;
-    });
+    const columns = document.createElement('div');
+columns.className =
+    'grid grid-cols-1 md:grid-cols-2 gap-6 items-start';
+
+function createColumn(title) {
+    const section = document.createElement('section');
+    section.className = 'min-w-0 space-y-4';
+
+    const heading = document.createElement('h4');
+    heading.className =
+        'text-sm font-bold text-slate-800 pb-2';
+    heading.textContent = title;
+
+    const list = document.createElement('div');
+    list.className = 'space-y-4';
+
+    section.append(heading, list);
+    columns.appendChild(section);
+    return list;
+}
+
+const upvoteList = createColumn('▲ Más apoyados');
+const downvoteList = createColumn('▼ Más cuestionados');
+container.appendChild(columns);
+
+const positiveComments = article.comments
+    .filter(c => c.upvotes >= c.downvotes)
+    .sort((a, b) =>
+        b.upvotes - a.upvotes || a.downvotes - b.downvotes
+    );
+
+const negativeComments = article.comments
+    .filter(c => c.downvotes > c.upvotes)
+    .sort((a, b) =>
+        b.downvotes - a.downvotes || a.upvotes - b.upvotes
+    );
+
+[
+    [upvoteList, positiveComments],
+    [downvoteList, negativeComments]
+].forEach(([list, comments]) => {
+    if (comments.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-xs text-slate-400 italic';
+        empty.textContent = 'Todavía no hay comentarios aquí.';
+        list.appendChild(empty);
+    }
+});
+
+const sorted = [...positiveComments, ...negativeComments];
 
     sorted.forEach(comment => {
         const card = document.createElement('div');
@@ -1302,7 +1335,7 @@ function renderModalComments(article) {
         text.textContent = comment.text;
 
         const actions = document.createElement('div');
-        actions.className = 'flex items-center gap-4';
+        actions.className = 'flex flex-wrap items-center gap-3';
 
         const upvote = document.createElement('button');
         upvote.type = 'button';
@@ -1423,7 +1456,7 @@ function renderModalComments(article) {
         };
 
         card.appendChild(form);
-        container.appendChild(card);
+        const destination = comment.downvotes > comment.upvotes     ? downvoteList     : upvoteList;  destination.appendChild(card);
     });
 
     saveArticlesToStorage();
