@@ -1298,19 +1298,8 @@ html.dark ::-webkit-scrollbar-thumb {
         }
 
         function updateFilterIndicator() {
-            const indicator = document.getElementById('filterIndicator');
-            const label = document.getElementById('filterLabel');
-
-            if (currentCategory !== 'Todos' || currentSearchQuery.trim() !== '') {
-                indicator.classList.remove('hidden');
-                let text = '';
-                if (currentCategory !== 'Todos') text += `Categoría "${currentCategory}" `;
-                if (currentSearchQuery) text += `Búsqueda "${currentSearchQuery}"`;
-                label.innerText = text;
-            } else {
-                indicator.classList.add('hidden');
-            }
-        }
+    document.getElementById('filterIndicator').classList.add('hidden');
+}
 
         function resetFilters() {
             currentSearchQuery = '';
