@@ -1339,6 +1339,18 @@ function prepareComments(article) {
     });
 }
 
+function prepareComments(article) {
+    article.comments = article.comments || [];
+
+    article.comments.forEach(comment => {
+        comment.id = comment.id || crypto.randomUUID();
+        comment.upvotes = Number(comment.upvotes) || 0;
+        comment.downvotes = Number(comment.downvotes) || 0;
+        comment.myVote = Number(comment.myVote) || 0;
+        comment.replies = comment.replies || [];
+    });
+}
+
 function renderModalComments(article) {
     prepareComments(article);
 
@@ -1616,11 +1628,11 @@ function submitComment(e) {
 
     saveArticlesToStorage();
     textInput.value = '';
-    renderModalComments(article);
+        renderModalComments(article);
 }
 
 function filterByCategory(category) {
-            currentCategory = category;
+    currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => {
                 if (btn.dataset.category === category) {
                     btn.className = 'category-btn active px-4 py-2 rounded-lg bg-pitch-600 text-white font-bold transition-all whitespace-nowrap shadow-sm';
