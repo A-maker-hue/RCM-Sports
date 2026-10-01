@@ -274,6 +274,41 @@ html.dark #modalBody a {
         font-size: 2.25rem;
     }
 }
+        #modalBody[data-reading-size="large"] {
+    font-size: 1.375rem;
+}
+
+#modalBody[data-reading-size="extra"] {
+    font-size: 1.625rem;
+}
+
+[data-reading-size][aria-pressed="true"] {
+    background-color: #166534;
+    border-color: #166534;
+    color: #ffffff;
+}
+
+html.dark [data-reading-size][aria-pressed="true"] {
+    background-color: #166534;
+    border-color: #4ade80;
+    color: #ffffff;
+}
+
+#relatedStoriesList button:focus-visible,
+[data-reading-size]:focus-visible {
+    outline: 3px solid #16a34a;
+    outline-offset: 3px;
+}
+
+@media (min-width: 768px) {
+    #modalBody[data-reading-size="large"] {
+        font-size: 1.5rem;
+    }
+
+    #modalBody[data-reading-size="extra"] {
+        font-size: 1.75rem;
+    }
+}
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-900 selection:bg-pitch-600 selection:text-white">
@@ -653,10 +688,49 @@ html.dark #modalBody a {
                 <div class="relative rounded-xl overflow-hidden h-64 sm:h-96 shadow-md">
                     <img id="modalImage" src="" alt="Portada" class="w-full h-full object-cover">
                 </div>
+<div class="flex flex-wrap items-center gap-2"
+     role="group"
+     aria-label="Tamaño del texto">
+    <span class="text-sm text-slate-500 mr-2">Texto:</span>
 
+    <button type="button" data-reading-size="normal"
+            onclick="setReadingSize('normal')"
+            aria-pressed="true"
+            class="px-3 py-2 rounded-lg border border-slate-200
+                   bg-slate-100 text-slate-800 text-sm">
+        Normal
+    </button>
+
+    <button type="button" data-reading-size="large"
+            onclick="setReadingSize('large')"
+            aria-pressed="false"
+            class="px-3 py-2 rounded-lg border border-slate-200
+                   bg-slate-100 text-slate-800 text-sm">
+        Grande
+    </button>
+
+    <button type="button" data-reading-size="extra"
+            onclick="setReadingSize('extra')"
+            aria-pressed="false"
+            class="px-3 py-2 rounded-lg border border-slate-200
+                   bg-slate-100 text-slate-800 text-sm">
+        Extra grande
+    </button>
+</div>
                 <div id="modalBody" class="text-slate-700 text-sm sm:text-base leading-relaxed space-y-4">
                     <!-- Article HTML Body -->
                 </div>
+                <section id="relatedStoriesSection" class="hidden space-y-4"
+         aria-labelledby="relatedStoriesHeading">
+    <h2 id="relatedStoriesHeading"
+        class="text-xl font-bold text-slate-900">
+        Sigue leyendo
+    </h2>
+
+    <div id="relatedStoriesList"
+         class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    </div>
+</section>
 
                 <div class="flex items-center justify-between py-4 border-y border-slate-100">
                     <button id="modalLikeBtn" onclick="toggleLikeModal()" class="flex items-center space-x-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:text-red-500 hover:border-red-200 transition-all">
@@ -1263,6 +1337,8 @@ html.dark #modalBody a {
             document.getElementById('modalReadTime').innerText = article.readTime;
             document.getElementById('modalImage').src = article.image;
             document.getElementById('modalBody').innerHTML = article.body;
+            restoreReadingSize();
+renderRelatedStories(article);
             
             updateModalLikeBtn(article);
             renderModalComments(article);
@@ -1691,6 +1767,91 @@ function filterByCategory(category) {
                 btn.innerHTML = `<i class="fa-solid fa-link text-xs"></i>`;
             }, 2000);
         }
+        function setReadingSize(size) {
+    const allowedSizes = ['normal', 'large', 'extra'];
+    if (!allowedSizes.includes(size)) size = 'normal';
+
+    document.getElementById('modalBody').dataset.readingSize = size;
+
+    document.querySelectorAll('button[data-reading-size]')
+        .forEach(button => {
+            button.setAttribute(
+                'aria-pressed',
+                String(button.dataset.readingSize === size)
+            );
+        });
+
+    try {
+        localStorage.setItem('rcm_sports_reading_size', size);
+    } catch {}
+}
+
+function restoreReadingSize() {
+    let size = 'normal';
+
+    try {
+        size = localStorage.getItem('rcm_sports_reading_size')
+            || 'normal';
+    } catch {}
+
+    setReadingSize(size);
+}
+
+function renderRelatedStories(article) {
+    const section = document.getElementById('relatedStoriesSection');
+    const list = document.getElementById('relatedStoriesList');
+    list.replaceChildren();
+
+    const related = articles
+        .filter(other =>
+            other.id !== article.id &&
+            other.category === article.category
+        )
+        .slice(0, 2);
+
+    section.classList.toggle('hidden', related.length === 0);
+
+    related.forEach(story => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className =
+            'min-w-0 w-full text-left bg-slate-50 border ' +
+            'border-slate-200 rounded-xl p-4 space-y-2 ' +
+            'hover:border-pitch-600 transition-colors';
+
+        const category = document.createElement('span');
+        category.className =
+            'block text-xs font-bold text-pitch-700';
+        category.textContent = story.category;
+
+        const title = document.createElement('h3');
+        title.className =
+            'text-base font-bold text-slate-900 leading-snug break-words';
+        title.textContent = story.title;
+
+        const readTime = document.createElement('span');
+        readTime.className = 'block text-sm text-slate-500';
+        readTime.textContent = story.readTime || 'Leer artículo';
+
+        button.append(category, title, readTime);
+
+        button.onclick = () => {
+            openArticleModal(story.id);
+
+            const scroller = document.querySelector(
+                '#articleModal .overflow-y-auto'
+            );
+
+            if (scroller) scroller.scrollTop = 0;
+
+            const modalTitle = document.getElementById('modalTitle');
+            modalTitle.setAttribute('tabindex', '-1');
+            modalTitle.focus({ preventScroll: true });
+        };
+
+        list.appendChild(button);
+    });
+}
         function updateThemeButton() {
     const isDark = document.documentElement.classList.contains('dark');
     const button = document.getElementById('themeToggle');
