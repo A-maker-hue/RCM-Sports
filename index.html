@@ -179,7 +179,7 @@ html.dark ::-webkit-scrollbar-thumb {
     width: 100%;
     max-width: 65ch;
     margin-inline: auto;
-    font-size: 1.125rem;
+    font-size: 1rem;
     line-height: 1.65;
     font-weight: 400;
     text-align: left;
@@ -259,7 +259,7 @@ html.dark #modalBody a {
 
 @media (min-width: 768px) {
     #modalBody {
-        font-size: 1.25rem;
+        font-size: 1.125rem;
     }
 
     #modalBody h2 {
@@ -310,6 +310,8 @@ html.dark [data-reading-size][aria-pressed="true"] {
     }
 }
     </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 </head>
 <body class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-900 selection:bg-pitch-600 selection:text-white">
 
@@ -400,6 +402,9 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 <button onclick="filterByCategory('Todos')" class="category-btn active px-4 py-2 rounded-lg bg-pitch-600 text-white font-bold transition-all whitespace-nowrap shadow-sm" data-category="Todos">
                     <i class="fa-solid fa-border-all mr-1.5"></i> Todos
                 </button>
+                <button onclick="filterByCategory('Picks')" class="category-btn px-4 py-2 rounded-lg bg-slate-100 text-slate-600 hover:text-pitch-700 hover:bg-pitch-50 transition-all whitespace-nowrap" data-category="Picks">
+                    <i class="fa-solid fa-bullseye mr-1.5 text-pitch-600"></i> Picks
+                </button>
                 <button onclick="filterByCategory('Fútbol')" class="category-btn px-4 py-2 rounded-lg bg-slate-100 text-slate-600 hover:text-pitch-700 hover:bg-pitch-50 transition-all whitespace-nowrap" data-category="Fútbol">
                     <i class="fa-solid fa-futbol mr-1.5 text-pitch-600"></i> Fútbol
                 </button>
@@ -422,6 +427,13 @@ html.dark [data-reading-size][aria-pressed="true"] {
         </div>
     </header>
 
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <p id="dataStatus" role="status" class="text-sm text-slate-500">Cargando publicaciones…</p>
+        <div id="legacyTools" class="hidden mt-2 flex flex-wrap gap-3 text-sm">
+            <button type="button" onclick="importLegacyArticles(event)" class="px-3 py-2 rounded-lg border border-slate-300">Recuperar notas de este navegador</button>
+            <button type="button" onclick="exportLegacyArticles()" class="px-3 py-2 rounded-lg border border-slate-300">Descargar copia de notas antiguas</button>
+        </div>
+    </div>
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
 
         <!-- Active Filter Indicator Bar -->
@@ -554,23 +566,18 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Usuario Admin</label>
-                    <input type="text" id="loginUsername" required placeholder="Ej: admin1" 
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Correo del editor</label>
+                    <input type="email" id="loginUsername" autocomplete="username" required placeholder="tu@correo.com" 
                         class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contraseña</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••" 
+                    <input type="password" autocomplete="current-password" id="loginPassword" required placeholder="••••••••" 
                         class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
                 </div>
 
-                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px] text-slate-500 space-y-1">
-                    <p class="font-bold text-slate-700">Cuentas Administradoras Disponibles:</p>
-                    <p>• <span class="font-mono text-slate-800">admin1</span> / <span class="font-mono text-slate-800">AESPORTS#$57</span> (Adrián Mendoza)</p>
-                    <p>• <span class="font-mono text-slate-800">admin2</span> / <span class="font-mono text-slate-800">AESPORTS@.76</span> (Editor 2)</p>
-                    <p>• <span class="font-mono text-slate-800">admin3</span> / <span class="font-mono text-slate-800">AESPORTS$%23</span> (Editor 3)</p>
-                </div>
+                <p class="text-xs text-slate-500">Acceso para los editores autorizados de RCM-Sports.</p>
 
                 <div class="flex justify-end space-x-3 pt-2">
                     <button type="button" onclick="closeLoginModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100">
@@ -599,6 +606,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
             </div>
 
             <form onsubmit="handlePublishSubmit(event)" class="p-6 space-y-4">
+                <p id="publishErrorMsg" role="alert" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl"></p>
                 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Título de la Noticia *</label>
@@ -610,6 +618,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Categoría *</label>
                         <select id="pubCategory" required class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
+                            <option value="Picks">Picks</option>
                             <option value="Fútbol">Fútbol</option>
                             <option value="Fútbol Americano Colegial">Fútbol Americano Colegial</option>
                             <option value="NFL">NFL</option>
@@ -753,6 +762,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
                         Comentarios (<span id="modalCommentCount">0</span>)
                     </h3>
 
+                    <p class="text-xs text-slate-500">Por ahora, los comentarios y votos se guardan solo en este navegador.</p>
                     <form onsubmit="submitComment(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <input type="text" id="commentAuthor" required placeholder="Tu Nombre / Nombre de Usuario" 
                             class="w-full sm:w-1/2 bg-white border border-slate-200 text-xs text-slate-800 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-pitch-600">
@@ -855,11 +865,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
     </footer>
 
     <script>
-        const ADMIN_USERS = [
-            { username: "admin1", pass: "AESPORTS#$57", name: "Adrian Mendoza" },
-            { username: "admin2", pass: "AESPORTS@.76", name: "Marco Ramirez" },
-            { username: "admin3", pass: "AESPORTS$%23", name: "Eduard Carrera" }
-        ];
+
 
         const defaultArticles = [
             {
@@ -975,9 +981,17 @@ html.dark [data-reading-size][aria-pressed="true"] {
             ]
         };
 
+        const db = window.supabase ? window.supabase.createClient(
+            'https://zahuhmvmqvxaunqebqaa.supabase.co',
+            'sb_publishable_QK4qV6totowE4KjolNANrQ_O46olHYg'
+        ) : null;
+        let publishDraftId = null;
+        let loadingArticles = false;
+        let authRevision = 0;
+
         // State variables
         let articles = [];
-        let currentAdmin = null; // null if logged out, or ADMIN_USERS object if logged in
+        let currentAdmin = null; // Verified Supabase editor
         let currentCategory = 'Todos';
         let currentSearchQuery = '';
         let activeModalArticleId = null;
@@ -991,33 +1005,50 @@ html.dark [data-reading-size][aria-pressed="true"] {
             'Ciclismo': 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&auto=format&fit=crop&q=80'
         };
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadAdminSession();
-            loadArticlesFromStorage();
+        function setDataStatus(message) {
+            document.getElementById('dataStatus').textContent = message;
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Never trust the old browser-only administrator session.
+            try { localStorage.removeItem('rcm_sports_active_admin'); } catch {}
+            articles = defaultArticles.map(a => withLocalInteractions({...a, remote: false}));
             renderAdminUI();
             renderArticlesFeed();
             renderPoll();
             renderTrending();
+            if (db) {
+                db.auth.onAuthStateChange(() => {
+                    // Run outside the Auth callback to avoid its session lock.
+                    setTimeout(loadAdminSession, 0);
+                });
+            }
+            await Promise.allSettled([loadAdminSession(), loadArticlesFromStorage()]);
         });
 
-        function loadAdminSession() {
-            const savedSession = localStorage.getItem('rcm_sports_active_admin');
-            if (savedSession) {
-                try {
-                    currentAdmin = JSON.parse(savedSession);
-                } catch(e) {
-                    currentAdmin = null;
+        async function loadAdminSession() {
+            const revision = ++authRevision;
+            let editor = null;
+            try {
+                if (!db) throw new Error('Sin conexión');
+                const {data, error} = await db.auth.getUser();
+                if (error || !data.user) throw new Error('Sin sesión');
+                const permission = await db.from('editors').select('user_id')
+                    .eq('user_id', data.user.id).maybeSingle();
+                if (permission.error) throw permission.error;
+                if (permission.data) {
+                    editor = {
+                        id: data.user.id,
+                        name: data.user.user_metadata?.display_name || data.user.email.split('@')[0]
+                    };
                 }
-            }
+            } catch {}
+            if (revision !== authRevision) return;
+            currentAdmin = editor;
+            renderAdminUI();
+            renderArticlesFeed();
         }
 
-        function saveAdminSession() {
-            if (currentAdmin) {
-                localStorage.setItem('rcm_sports_active_admin', JSON.stringify(currentAdmin));
-            } else {
-                localStorage.removeItem('rcm_sports_active_admin');
-            }
-        }
 
         function openLoginModal() {
             document.getElementById('loginErrorMsg').classList.add('hidden');
@@ -1030,37 +1061,57 @@ html.dark [data-reading-size][aria-pressed="true"] {
             document.body.style.overflow = 'auto';
         }
 
-        function handleAdminLogin(e) {
+        async function handleAdminLogin(e) {
             e.preventDefault();
-            const userInput = document.getElementById('loginUsername').value.trim();
-            const passInput = document.getElementById('loginPassword').value.trim();
-
-            const foundAdmin = ADMIN_USERS.find(a => a.username.toLowerCase() === userInput.toLowerCase() && a.pass === passInput);
-
-            if (foundAdmin) {
-                currentAdmin = foundAdmin;
-                saveAdminSession();
-                renderAdminUI();
-                renderArticlesFeed(); // Refresh feeds to show delete options
+            const button = e.target.querySelector('button[type="submit"]');
+            if (button.disabled) return;
+            button.disabled = true;
+            const errBox = document.getElementById('loginErrorMsg');
+            errBox.classList.add('hidden');
+            try {
+                if (!db) throw new Error('No se pudo conectar. Recarga la página e inténtalo de nuevo.');
+                const {error} = await db.auth.signInWithPassword({
+                    email: document.getElementById('loginUsername').value.trim(),
+                    password: document.getElementById('loginPassword').value
+                });
+                if (error) throw new Error('No se pudo iniciar sesión. Comprueba el correo, la contraseña y tu conexión.');
+                await loadAdminSession();
+                // A state-change callback may also be checking this same session.
+                if (!currentAdmin) {
+                    await loadAdminSession();
+                    if (!currentAdmin) throw new Error('No se pudo verificar tu permiso de editor. Revisa que esta cuenta esté autorizada.');
+                }
                 closeLoginModal();
-                // Reset inputs
-                document.getElementById('loginUsername').value = '';
                 document.getElementById('loginPassword').value = '';
-            } else {
-                const errBox = document.getElementById('loginErrorMsg');
-                errBox.innerText = 'Usuario o contraseña incorrectos.';
+                setDataStatus('Sesión de editor iniciada. Las nuevas publicaciones se guardarán en línea.');
+            } catch (error) {
+                errBox.textContent = error.message;
                 errBox.classList.remove('hidden');
+            } finally {
+                button.disabled = false;
             }
         }
 
-        function handleAdminLogout() {
-            currentAdmin = null;
-            saveAdminSession();
-            renderAdminUI();
-            renderArticlesFeed();
+        async function handleAdminLogout() {
+            try {
+                if (db) {
+                    const {error} = await db.auth.signOut({scope: 'local'});
+                    if (error) throw error;
+                }
+                ++authRevision;
+                currentAdmin = null;
+                renderAdminUI();
+                renderArticlesFeed();
+                closePublishModal();
+                setDataStatus('Sesión cerrada.');
+            } catch {
+                setDataStatus('No se pudo cerrar la sesión. Comprueba la conexión e inténtalo de nuevo.');
+            }
         }
 
+
         function renderAdminUI() {
+            document.getElementById('legacyTools').classList.toggle('hidden', !currentAdmin || !readLegacyArticles().length);
             const guestContainer = document.getElementById('guestAdminContainer');
             const loggedContainer = document.getElementById('loggedAdminContainer');
             const adminNameDisplay = document.getElementById('adminNameDisplay');
@@ -1077,23 +1128,140 @@ html.dark [data-reading-size][aria-pressed="true"] {
             }
         }
 
-        function loadArticlesFromStorage() {
-            const saved = localStorage.getItem('rcm_sports_articles');
-            if (saved) {
-                try {
-                    articles = JSON.parse(saved);
-                } catch(e) {
-                    articles = defaultArticles;
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+            })[ch]);
+        }
+
+        function articleIdArgument(id) {
+            return escapeHTML(JSON.stringify(id));
+        }
+
+        function safeImageURL(value) {
+            try {
+                const url = new URL(value);
+                if (url.protocol === 'https:') return url.href;
+            } catch {}
+            return categoryFallbackImages['Fútbol'];
+        }
+
+        function cleanBody(value) {
+            if (!window.DOMPurify) return escapeHTML(value);
+            return DOMPurify.sanitize(String(value ?? ''), {
+                ALLOWED_TAGS: ['p','br','strong','em','b','i','h2','h3','ul','ol','li','blockquote','a','img'],
+                ALLOWED_ATTR: ['href','src','alt','title'],
+                ALLOW_DATA_ATTR: false
+            });
+        }
+
+        function readJSON(key, fallback) {
+            try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+        }
+
+        function readLegacyArticles() {
+            const saved = readJSON('rcm_sports_articles', []);
+            return Array.isArray(saved) ? saved.filter(a => a && a.id != null && typeof a.title === 'string') : [];
+        }
+
+        function withLocalInteractions(article) {
+            const local = readJSON('rcm_sports_interactions_v2', {});
+            const legacy = readLegacyArticles().find(a => String(a.id) === String(article.id));
+            const saved = local[article.id] || legacy || article;
+            return {...article,
+                likes: Math.max(0, Number(saved.likes) || 0),
+                userLiked: Boolean(saved.userLiked),
+                comments: Array.isArray(saved.comments) ? saved.comments : []
+            };
+        }
+
+        function fromDatabase(row) {
+            return withLocalInteractions({
+                id: row.id, title: row.title, category: row.category,
+                author: row.author, image: safeImageURL(row.image),
+                authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(row.author),
+                summary: row.summary, body: row.body, featured: row.featured,
+                date: new Date(row.created_at).toLocaleDateString('es', {year:'numeric', month:'short', day:'numeric'}),
+                readTime: Math.max(1, Math.ceil(row.body.replace(/<[^>]*>/g, ' ').split(/\s+/).length / 220)) + ' min de lectura',
+                remote: true, likes: 0, userLiked: false, comments: []
+            });
+        }
+
+        async function loadArticlesFromStorage() {
+            if (loadingArticles) return;
+            loadingArticles = true;
+            try {
+                if (!db) throw new Error('Conexión no disponible');
+                const rows = [];
+                for (let offset = 0; ; offset += 1000) {
+                    const {data, error} = await db.from('articles').select('*')
+                        .order('created_at', {ascending: false}).order('id')
+                        .range(offset, offset + 999);
+                    if (error) throw error;
+                    rows.push(...data);
+                    if (data.length < 1000) break;
                 }
-            } else {
-                articles = defaultArticles;
-                saveArticlesToStorage();
-            }
+                articles = [...rows.map(fromDatabase), ...defaultArticles.map(a => withLocalInteractions({...a, remote: false}))];
+                renderArticlesFeed();
+                renderTrending();
+                setDataStatus('');
+            } catch {
+                setDataStatus('No se pudieron cargar las publicaciones en línea. Comprueba tu conexión y recarga la página.');
+            } finally { loadingArticles = false; }
         }
 
         function saveArticlesToStorage() {
-            localStorage.setItem('rcm_sports_articles', JSON.stringify(articles));
+            // Interactions stay local in this release. Never overwrite published articles or the legacy backup.
+            const saved = readJSON('rcm_sports_interactions_v2', {});
+            for (const a of articles) saved[a.id] = {likes: a.likes, userLiked: a.userLiked, comments: a.comments};
+            try { localStorage.setItem('rcm_sports_interactions_v2', JSON.stringify(saved)); }
+            catch { setDataStatus('El navegador no pudo guardar esta interacción.'); }
         }
+
+        function exportLegacyArticles() {
+            const blob = new Blob([JSON.stringify(readLegacyArticles(), null, 2)], {type:'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = 'rcm-notas-antiguas.json'; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        async function importLegacyArticles(event) {
+            if (!currentAdmin || !db) return;
+            const candidates = readLegacyArticles().filter(a => !defaultArticles.some(d => String(d.id) === String(a.id)));
+            if (!candidates.length) { setDataStatus('No hay notas nuevas que recuperar en este navegador.'); return; }
+            if (!confirm('Se publicarán ' + candidates.length + ' notas guardadas en este navegador para que todos puedan leerlas. ¿Continuar?')) return;
+            const button = event.currentTarget;
+            button.disabled = true;
+            let imported = 0;
+            try {
+                for (const a of candidates) {
+                    // Stable ID makes retries and imports from another device idempotent.
+                    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('rcm-legacy:' + a.id));
+                    const hex = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2,'0')).join('');
+                    const id = `${hex.slice(0,8)}-${hex.slice(8,12)}-5${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`;
+                    const existing = await db.from('articles').select('id').eq('id', id).maybeSingle();
+                    if (existing.error) throw existing.error;
+                    if (existing.data) continue;
+                    const {error} = await db.from('articles').insert({
+                        id, title: a.title, category: a.category || 'Fútbol', author: a.author || currentAdmin.name,
+                        summary: a.summary || '', body: cleanBody(a.body || ''), image: safeImageURL(a.image),
+                        featured: false, created_by: currentAdmin.id
+                    });
+                    if (error && error.code !== '23505') throw error;
+                    const saved = readJSON('rcm_sports_interactions_v2', {});
+                    saved[id] = {comments:a.comments || [], likes:Number(a.likes)||0, userLiked:Boolean(a.userLiked)};
+                    try { localStorage.setItem('rcm_sports_interactions_v2', JSON.stringify(saved)); } catch {}
+                    imported++;
+                }
+                await loadArticlesFromStorage();
+                setDataStatus(imported + ' notas recuperadas. Las copias antiguas siguen guardadas en este navegador.');
+            } catch {
+                await loadArticlesFromStorage();
+                setDataStatus('La recuperación no se completó. Puedes volver a intentarlo; las notas ya recuperadas no se duplicarán.');
+            } finally { button.disabled = false; }
+        }
+
 
         function renderArticlesFeed() {
             const filtered = articles.filter(art => {
@@ -1121,7 +1289,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
             noResults.classList.add('hidden');
             articlesGrid.classList.remove('hidden');
 
-            let heroArticle = filtered.find(a => a.featured) || filtered[0];
+            let heroArticle = filtered.find(a => a.remote && a.featured) || filtered.find(a => a.remote) || filtered.find(a => a.featured) || filtered[0];
             let gridArticles = filtered.filter(a => a.id !== heroArticle.id);
 
             if (currentCategory !== 'Todos' || currentSearchQuery !== '') {
@@ -1136,12 +1304,12 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-pitch-300 transition-all duration-300 hover:-translate-y-1 relative">
                     <div>
                         <div class="relative h-48 overflow-hidden group">
-                            <img src="${art.image}" alt="${art.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <img src="${escapeHTML(safeImageURL(art.image))}" alt="${escapeHTML(art.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-md border border-slate-200 text-pitch-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm">
-                                ${art.category}
+                                ${escapeHTML(art.category)}
                             </div>
-                            ${currentAdmin ? `
-                                <button onclick="deleteArticle(${art.id}, event)" title="Eliminar Artículo" class="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-md transition-colors">
+                            ${currentAdmin && art.remote ? `
+                                <button onclick="deleteArticle(${articleIdArgument(art.id)}, event)" title="Eliminar Artículo" class="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-md transition-colors">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             ` : ''}
@@ -1149,33 +1317,33 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
                         <div class="p-5">
                             <div class="flex items-center space-x-2 text-[11px] text-slate-400 mb-2">
-                                <span><i class="fa-regular fa-calendar mr-1"></i>${art.date}</span>
+                                <span><i class="fa-regular fa-calendar mr-1"></i>${escapeHTML(art.date)}</span>
                                 <span>•</span>
-                                <span><i class="fa-regular fa-clock mr-1"></i>${art.readTime}</span>
+                                <span><i class="fa-regular fa-clock mr-1"></i>${escapeHTML(art.readTime)}</span>
                             </div>
 
-                            <h3 onclick="openArticleModal(${art.id})" class="text-base font-bold text-slate-900 hover:text-pitch-600 cursor-pointer transition-colors leading-snug line-clamp-2 mb-2">
-                                ${art.title}
+                            <h3 onclick="openArticleModal(${articleIdArgument(art.id)})" class="text-base font-bold text-slate-900 hover:text-pitch-600 cursor-pointer transition-colors leading-snug line-clamp-2 mb-2">
+                                ${escapeHTML(art.title)}
                             </h3>
 
                             <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">
-                                ${art.summary}
+                                ${escapeHTML(art.summary)}
                             </p>
                         </div>
                     </div>
 
                     <div class="px-5 pb-5 pt-0 flex items-center justify-between border-t border-slate-100 mt-auto">
                         <div class="flex items-center space-x-2">
-                            <img src="${art.authorAvatar}" class="w-6 h-6 rounded-full object-cover" alt="${art.author}">
-                            <span class="text-xs text-slate-700 font-medium">${art.author}</span>
+                            <img src="${escapeHTML(safeImageURL(art.authorAvatar))}" class="w-6 h-6 rounded-full object-cover" alt="${escapeHTML(art.author)}">
+                            <span class="text-xs text-slate-700 font-medium">${escapeHTML(art.author)}</span>
                         </div>
 
                         <div class="flex items-center space-x-3">
-                            <button onclick="toggleLike(${art.id}, event)" class="flex items-center space-x-1 text-xs ${art.userLiked ? 'text-red-500' : 'text-slate-400 hover:text-red-500'} transition-colors">
+                            <button onclick="toggleLike(${articleIdArgument(art.id)}, event)" class="flex items-center space-x-1 text-xs ${art.userLiked ? 'text-red-500' : 'text-slate-400 hover:text-red-500'} transition-colors">
                                 <i class="${art.userLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
                                 <span class="font-bold">${art.likes}</span>
                             </button>
-                            <button onclick="openArticleModal(${art.id})" class="text-xs font-bold text-pitch-600 hover:underline flex items-center">
+                            <button onclick="openArticleModal(${articleIdArgument(art.id)})" class="text-xs font-bold text-pitch-600 hover:underline flex items-center">
                                 Leer <i class="fa-solid fa-arrow-right ml-1 text-[10px]"></i>
                             </button>
                         </div>
@@ -1190,7 +1358,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 <div class="bg-white rounded-2xl overflow-hidden border border-pitch-200 relative shadow-lg grass-glow">
                     <div class="grid grid-cols-1 md:grid-cols-12">
                         <div class="md:col-span-7 h-64 md:h-auto relative overflow-hidden group">
-                            <img src="${hero.image}" alt="${hero.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <img src="${escapeHTML(safeImageURL(hero.image))}" alt="${escapeHTML(hero.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
                             <span class="absolute top-4 left-4 bg-pitch-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md shadow-md">
                                 <i class="fa-solid fa-star mr-1"></i> Destacado
                             </span>
@@ -1198,27 +1366,27 @@ html.dark [data-reading-size][aria-pressed="true"] {
                         <div class="md:col-span-5 p-6 sm:p-8 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center space-x-2 text-xs text-pitch-700 font-bold uppercase tracking-wider mb-2">
-                                    <span>${hero.category}</span>
+                                    <span>${escapeHTML(hero.category)}</span>
                                     <span class="text-slate-300">•</span>
-                                    <span class="text-slate-400 font-normal">${hero.readTime}</span>
+                                    <span class="text-slate-400 font-normal">${escapeHTML(hero.readTime)}</span>
                                 </div>
-                                <h1 onclick="openArticleModal(${hero.id})" class="text-xl sm:text-2xl font-black text-slate-900 hover:text-pitch-600 cursor-pointer transition-colors leading-tight mb-3">
-                                    ${hero.title}
+                                <h1 onclick="openArticleModal(${articleIdArgument(hero.id)})" class="text-xl sm:text-2xl font-black text-slate-900 hover:text-pitch-600 cursor-pointer transition-colors leading-tight mb-3">
+                                    ${escapeHTML(hero.title)}
                                 </h1>
                                 <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
-                                    ${hero.summary}
+                                    ${escapeHTML(hero.summary)}
                                 </p>
                             </div>
 
                             <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-4">
                                 <div class="flex items-center space-x-3">
-                                    <img src="${hero.authorAvatar}" class="w-8 h-8 rounded-full object-cover border border-pitch-600" alt="${hero.author}">
+                                    <img src="${escapeHTML(safeImageURL(hero.authorAvatar))}" class="w-8 h-8 rounded-full object-cover border border-pitch-600" alt="${escapeHTML(hero.author)}">
                                     <div>
-                                        <p class="text-xs font-bold text-slate-800">${hero.author}</p>
-                                        <p class="text-[10px] text-slate-400">${hero.date}</p>
+                                        <p class="text-xs font-bold text-slate-800">${escapeHTML(hero.author)}</p>
+                                        <p class="text-[10px] text-slate-400">${escapeHTML(hero.date)}</p>
                                     </div>
                                 </div>
-                                <button onclick="openArticleModal(${hero.id})" class="bg-pitch-600 hover:bg-pitch-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-pitch-600/20 transition-all hover:scale-105">
+                                <button onclick="openArticleModal(${articleIdArgument(hero.id)})" class="bg-pitch-600 hover:bg-pitch-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-pitch-600/20 transition-all hover:scale-105">
                                     Leer Noticia
                                 </button>
                             </div>
@@ -1269,12 +1437,12 @@ html.dark [data-reading-size][aria-pressed="true"] {
             const sortedByLikes = [...articles].sort((a, b) => b.likes - a.likes).slice(0, 4);
 
             container.innerHTML = sortedByLikes.map((art, idx) => `
-                <div onclick="openArticleModal(${art.id})" class="flex items-center space-x-3 cursor-pointer group p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                <div onclick="openArticleModal(${articleIdArgument(art.id)})" class="flex items-center space-x-3 cursor-pointer group p-2 rounded-xl hover:bg-slate-50 transition-colors">
                     <span class="text-xl font-black text-slate-300 group-hover:text-pitch-600 transition-colors w-6 text-center">0${idx + 1}</span>
                     <div class="flex-1">
-                        <span class="text-[10px] font-bold text-pitch-700 uppercase tracking-wider">${art.category}</span>
+                        <span class="text-[10px] font-bold text-pitch-700 uppercase tracking-wider">${escapeHTML(art.category)}</span>
                         <h4 class="text-xs font-bold text-slate-800 group-hover:text-pitch-600 leading-snug line-clamp-2">
-                            ${art.title}
+                            ${escapeHTML(art.title)}
                         </h4>
                     </div>
                 </div>
@@ -1296,60 +1464,74 @@ html.dark [data-reading-size][aria-pressed="true"] {
             document.body.style.overflow = 'auto';
         }
 
-        function handlePublishSubmit(e) {
+        async function handlePublishSubmit(e) {
             e.preventDefault();
-            if (!currentAdmin) return;
-            
-            const title = document.getElementById('pubTitle').value.trim();
+            if (!currentAdmin || !db) return;
+            const button = e.target.querySelector('button[type="submit"]');
+            if (button.disabled) return;
+            button.disabled = true;
+            const errorBox = document.getElementById('publishErrorMsg');
+            errorBox.classList.add('hidden');
+            errorBox.textContent = '';
+            const label = button.textContent;
+            button.textContent = 'Publicando…';
             const category = document.getElementById('pubCategory').value;
-            const author = document.getElementById('pubAuthor').value.trim() || currentAdmin.name;
-            let image = document.getElementById('pubImage').value.trim();
-            const summary = document.getElementById('pubSummary').value.trim();
             const bodyText = document.getElementById('pubBody').value.trim();
-
-            if (!image) {
-                image = categoryFallbackImages[category] || categoryFallbackImages['Fútbol'];
+            const title = document.getElementById('pubTitle').value.trim();
+            try {
+                if (!title || !bodyText) throw new Error('Completa el título y el contenido.');
+                publishDraftId = publishDraftId || crypto.randomUUID();
+                const payload = {
+                    id: publishDraftId, title, category,
+                    author: document.getElementById('pubAuthor').value.trim() || currentAdmin.name,
+                    image: safeImageURL(document.getElementById('pubImage').value.trim() || categoryFallbackImages[category]),
+                    summary: document.getElementById('pubSummary').value.trim(),
+                    body: bodyText.split(/\n/).map(p => '<p>' + escapeHTML(p) + '</p>').join(''),
+                    featured: false, created_by: currentAdmin.id
+                };
+                const {data, error} = await db.from('articles').upsert(payload, {onConflict:'id'}).select().single();
+                if (error) throw new Error('No se pudo guardar en línea. Comprueba tu conexión y tu sesión e inténtalo de nuevo. El formulario conserva tu texto.');
+                articles = [fromDatabase(data), ...articles.filter(a => a.id !== data.id)];
+                publishDraftId = null;
+                closePublishModal();
+                e.target.reset();
+                renderAdminUI();
+                currentSearchQuery = '';
+                document.getElementById('searchInput').value = '';
+                document.getElementById('mobileSearchInput').value = '';
+                filterByCategory(category);
+                renderTrending();
+                setDataStatus('Publicación guardada en línea. Ya puede leerse desde otros dispositivos al abrir o recargar la página.');
+            } catch (error) {
+                // Keep the modal and all inputs intact until the database confirms success.
+                errorBox.textContent = error.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                button.disabled = false;
+                button.textContent = label;
             }
-
-            const newArticle = {
-                id: Date.now(),
-                title: title,
-                category: category,
-                featured: false,
-                author: author,
-                authorAvatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(author)}`,
-                date: 'Hoy',
-                readTime: '3 min de lectura',
-                image: image,
-                summary: summary,
-                body: `<p>${bodyText.replace(/\n/g, '</p><p>')}</p>`,
-                likes: 1,
-                userLiked: true,
-                comments: []
-            };
-
-            articles.unshift(newArticle);
-            saveArticlesToStorage();
-            closePublishModal();
-            
-            // Clear form
-            document.getElementById('pubTitle').value = '';
-            document.getElementById('pubImage').value = '';
-            document.getElementById('pubSummary').value = '';
-            document.getElementById('pubBody').value = '';
-
-            renderArticlesFeed();
-            renderTrending();
         }
 
-        function deleteArticle(id, event) {
+        async function deleteArticle(id, event) {
             event.stopPropagation();
-            if (!currentAdmin) return;
-            articles = articles.filter(a => a.id !== id);
-            saveArticlesToStorage();
-            renderArticlesFeed();
-            renderTrending();
+            if (!currentAdmin || !db) return;
+            const article = articles.find(a => a.id === id);
+            if (!article?.remote) return;
+            if (!confirm('¿Eliminar «' + article.title + '» para todos los visitantes?')) return;
+            const button = event.currentTarget;
+            button.disabled = true;
+            try {
+                const {data, error} = await db.from('articles').delete().eq('id', id).select('id');
+                if (error || !data.length) throw new Error('No se pudo eliminar');
+                articles = articles.filter(a => a.id !== id);
+                renderArticlesFeed(); renderTrending();
+                if (activeModalArticleId === id) closeModal();
+                setDataStatus('Publicación eliminada.');
+            } catch {
+                setDataStatus('No se pudo eliminar la publicación. Comprueba tu conexión y tu permiso de editor.');
+            } finally { button.disabled = false; }
         }
+
 
         function openArticleModal(articleId) {
             const article = articles.find(a => a.id === articleId);
@@ -1360,11 +1542,11 @@ html.dark [data-reading-size][aria-pressed="true"] {
             document.getElementById('modalCategory').innerText = article.category;
             document.getElementById('modalTitle').innerText = article.title;
             document.getElementById('modalAuthor').innerText = article.author;
-            document.getElementById('modalAuthorImg').src = article.authorAvatar;
+            document.getElementById('modalAuthorImg').src = safeImageURL(article.authorAvatar);
             document.getElementById('modalDate').innerText = article.date;
             document.getElementById('modalReadTime').innerText = article.readTime;
-            document.getElementById('modalImage').src = article.image;
-            document.getElementById('modalBody').innerHTML = article.body;
+            document.getElementById('modalImage').src = safeImageURL(article.image);
+            document.getElementById('modalBody').innerHTML = cleanBody(article.body);
             restoreReadingSize();
 renderRelatedStories(article);
             
@@ -1430,18 +1612,6 @@ renderRelatedStories(article);
                 renderTrending();
             }
         }
-
-function prepareComments(article) {
-    article.comments = article.comments || [];
-
-    article.comments.forEach(comment => {
-        comment.id = comment.id || crypto.randomUUID();
-        comment.upvotes = Number(comment.upvotes) || 0;
-        comment.downvotes = Number(comment.downvotes) || 0;
-        comment.myVote = Number(comment.myVote) || 0;
-        comment.replies = comment.replies || [];
-    });
-}
 
 function prepareComments(article) {
     article.comments = article.comments || [];
@@ -1906,3 +2076,4 @@ updateThemeButton();
     </script>
 </body>
 </html>
+
