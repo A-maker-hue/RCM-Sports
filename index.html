@@ -754,9 +754,15 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 <span id="modalCategory" class="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-pitch-100 text-pitch-800 border border-pitch-200">
                     CATEGORÍA
                 </span>
-                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="modalDeleteArticleBtn" type="button" onclick="deleteArticle(activeModalArticleId, event)" title="Eliminar publicación" aria-label="Eliminar publicación" class="hidden px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold items-center gap-2 transition-colors">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden sm:inline">Eliminar</span>
+                    </button>
+                    <button type="button" onclick="closeModal()" aria-label="Cerrar publicación" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="p-6 overflow-y-auto space-y-6 flex-1">
@@ -831,7 +837,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
                     <div class="flex items-center space-x-2">
                         <span class="text-xs text-slate-400 mr-1">Compartir:</span>
-                        <button onclick="copyShareLink()" class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-pitch-600 transition-colors" title="Copiar enlace">
+                        <button type="button" onclick="copyShareLink(this)" class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-pitch-600 transition-colors" title="Copiar enlace de esta publicación" aria-label="Copiar enlace de esta publicación">
                             <i class="fa-solid fa-link text-xs"></i>
                         </button>
                     </div>
@@ -1327,6 +1333,8 @@ async function handleUserLogout() {
         loadAdminSession(),
         loadArticlesFromStorage()
     ]);
+
+    openArticleFromShareLink();
 });
 
         async function loadAdminSession() {
@@ -1446,6 +1454,12 @@ currentUser = {
 
         function renderAdminUI() {
             document.getElementById('legacyTools').classList.toggle('hidden', !currentAdmin || !readLegacyArticles().length);
+            const modalDeleteButton = document.getElementById('modalDeleteArticleBtn');
+            const modalArticle = articles.find(a => String(a.id) === String(activeModalArticleId));
+            if (modalDeleteButton) {
+                modalDeleteButton.classList.toggle('hidden', !(currentAdmin && modalArticle?.remote));
+                modalDeleteButton.classList.toggle('inline-flex', Boolean(currentAdmin && modalArticle?.remote));
+            }
             const guestContainer = document.getElementById('guestAdminContainer');
             const loggedContainer = document.getElementById('loggedAdminContainer');
             const adminNameDisplay = document.getElementById('adminNameDisplay');
@@ -1696,6 +1710,11 @@ currentUser = {
                             <span class="absolute top-4 left-4 bg-pitch-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md shadow-md">
                                 <i class="fa-solid fa-star mr-1"></i> Destacado
                             </span>
+                            ${currentAdmin && hero.remote ? `
+                                <button type="button" onclick="deleteArticle(${articleIdArgument(hero.id)}, event)" title="Eliminar publicación" aria-label="Eliminar publicación" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white w-9 h-9 rounded-lg flex items-center justify-center shadow-md transition-colors">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : ''}
                         </div>
                         <div class="md:col-span-5 p-6 sm:p-8 flex flex-col justify-between">
                             <div>
@@ -1867,11 +1886,18 @@ currentUser = {
         }
 
 
-        function openArticleModal(articleId) {
-            const article = articles.find(a => a.id === articleId);
+        function openArticleModal(articleId, options = {}) {
+            const article = articles.find(a => String(a.id) === String(articleId));
             if (!article) return;
 
-            activeModalArticleId = articleId;
+            activeModalArticleId = article.id;
+            if (options.updateUrl !== false) updateArticleShareUrl(article.id);
+
+            const modalDeleteButton = document.getElementById('modalDeleteArticleBtn');
+            if (modalDeleteButton) {
+                modalDeleteButton.classList.toggle('hidden', !(currentAdmin && article.remote));
+                modalDeleteButton.classList.toggle('inline-flex', Boolean(currentAdmin && article.remote));
+            }
 
             document.getElementById('modalCategory').innerText = article.category;
             document.getElementById('modalTitle').innerText = article.title;
@@ -1896,6 +1922,27 @@ loadCommentsFromSupabase(article.id);
             document.getElementById('articleModal').classList.add('hidden');
             syncModalScrollLock();
             activeModalArticleId = null;
+            updateArticleShareUrl(null);
+        }
+
+        function updateArticleShareUrl(articleId) {
+            const url = new URL(window.location.href);
+            if (articleId == null) url.searchParams.delete('article');
+            else url.searchParams.set('article', String(articleId));
+            window.history.replaceState(null, '', url.toString());
+        }
+
+        function openArticleFromShareLink() {
+            const articleId = new URLSearchParams(window.location.search).get('article');
+            if (!articleId) return;
+
+            const article = articles.find(item => String(item.id) === String(articleId));
+            if (!article) {
+                setDataStatus('No encontramos esa publicación. Puede que ya no esté disponible.');
+                return;
+            }
+
+            openArticleModal(article.id, {updateUrl: false});
         }
 
         function updateModalLikeBtn(article) {
@@ -2352,19 +2399,47 @@ async function loadCommentsFromSupabase(articleId) {
             document.getElementById('newsletterSuccess').classList.remove('hidden');
         }
 
-        function copyShareLink() {
-            const dummy = document.createElement('input');
-            document.body.appendChild(dummy);
-            dummy.value = window.location.href;
-            dummy.select();
-            document.execCommand('copy');
-            document.body.removeChild(dummy);
-            
-            const btn = event.currentTarget;
-            btn.innerHTML = `<i class="fa-solid fa-check text-xs text-pitch-600"></i>`;
-            setTimeout(() => {
-                btn.innerHTML = `<i class="fa-solid fa-link text-xs"></i>`;
-            }, 2000);
+        async function copyShareLink(button) {
+            const article = articles.find(item => String(item.id) === String(activeModalArticleId));
+            if (!article) return;
+
+            const shareUrl = new URL(window.location.href);
+            shareUrl.searchParams.set('article', String(article.id));
+            const link = shareUrl.toString();
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(link);
+                } else {
+                    throw new Error('Clipboard API unavailable');
+                }
+            } catch {
+                const fallback = document.createElement('textarea');
+                fallback.value = link;
+                fallback.setAttribute('readonly', '');
+                fallback.style.position = 'fixed';
+                fallback.style.opacity = '0';
+                document.body.appendChild(fallback);
+                fallback.select();
+                const copied = document.execCommand('copy');
+                fallback.remove();
+                if (!copied) {
+                    setDataStatus('No se pudo copiar el enlace. Puedes copiarlo desde la barra del navegador.');
+                    return;
+                }
+            }
+
+            if (button) {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fa-solid fa-check text-xs text-pitch-600"></i>';
+                button.title = 'Enlace copiado';
+                button.setAttribute('aria-label', 'Enlace copiado');
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.title = 'Copiar enlace de esta publicación';
+                    button.setAttribute('aria-label', 'Copiar enlace de esta publicación');
+                }, 2000);
+            }
         }
         function setReadingSize(size) {
     const allowedSizes = ['normal', 'large', 'extra'];
