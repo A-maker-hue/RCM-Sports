@@ -1217,8 +1217,13 @@ const password = passwordInput.value;
 
         passwordInput.value = '';
 
-        closeUserAuthModal();
-        updateCommentAuthUI();
+closeUserAuthModal();
+
+if (activeModalArticleId) {
+    await loadCommentsFromSupabase(activeModalArticleId);
+}
+
+updateCommentAuthUI();
 
     } catch (error) {
         showUserAuthError(
