@@ -352,11 +352,11 @@ html.dark [data-reading-size][aria-pressed="true"] {
     <i id="themeIcon" class="fa-solid fa-moon" aria-hidden="true"></i>
 </button>
                     
-                    <!-- Guest State: Admin Login Button -->
+                    <!-- Guest State: User sign-in and registration -->
                     <div id="guestAdminContainer">
-                        <button onclick="openLoginModal()" class="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold py-2.5 px-3.5 sm:px-4 rounded-xl transition-all">
-                            <i class="fa-solid fa-lock text-pitch-700"></i>
-                            <span>Acceso Admin</span>
+                        <button type="button" onclick="openUserAuthModal()" aria-label="Iniciar sesión o crear cuenta" class="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold py-2.5 px-3.5 sm:px-4 rounded-xl transition-all">
+                            <i class="fa-solid fa-right-to-bracket text-pitch-700"></i>
+                            <span>Iniciar sesión</span>
                         </button>
                     </div>
 
@@ -593,7 +593,8 @@ html.dark [data-reading-size][aria-pressed="true"] {
     </div>
 <!-- User Account Modal -->
 <div id="userAuthModal"
-     class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+     class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
+     style="z-index: 10000;">
 
     <div class="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden my-auto">
 
@@ -1100,15 +1101,24 @@ function validateUsername(username) {
     return /^[a-zA-Z0-9_]{3,30}$/.test(username);
 }
 
+function syncModalScrollLock() {
+    const modalIds = ['loginModal', 'userAuthModal', 'publishModal', 'articleModal'];
+    const hasOpenModal = modalIds.some(id => {
+        const modal = document.getElementById(id);
+        return modal && !modal.classList.contains('hidden');
+    });
+    document.body.style.overflow = hasOpenModal ? 'hidden' : 'auto';
+}
+
 function openUserAuthModal() {
     document.getElementById('userAuthError').classList.add('hidden');
     document.getElementById('userAuthModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    syncModalScrollLock();
 }
 
 function closeUserAuthModal() {
     document.getElementById('userAuthModal').classList.add('hidden');
-    document.body.style.overflow = 'auto';
+    syncModalScrollLock();
 }
 
 function showUserAuthError(message) {
@@ -1377,12 +1387,12 @@ currentUser = {
         function openLoginModal() {
             document.getElementById('loginErrorMsg').classList.add('hidden');
             document.getElementById('loginModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            syncModalScrollLock();
         }
 
         function closeLoginModal() {
             document.getElementById('loginModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
+            syncModalScrollLock();
         }
 
         async function handleAdminLogin(e) {
@@ -1780,12 +1790,12 @@ currentUser = {
             }
             document.getElementById('pubAuthor').value = currentAdmin.name;
             document.getElementById('publishModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            syncModalScrollLock();
         }
 
         function closePublishModal() {
             document.getElementById('publishModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
+            syncModalScrollLock();
         }
 
         async function handlePublishSubmit(e) {
@@ -1879,12 +1889,12 @@ renderRelatedStories(article);
 loadCommentsFromSupabase(article.id);
             
             document.getElementById('articleModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            syncModalScrollLock();
         }
 
         function closeModal() {
             document.getElementById('articleModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
+            syncModalScrollLock();
             activeModalArticleId = null;
         }
 
@@ -2467,4 +2477,3 @@ updateThemeButton();
     </script>
 </body>
 </html>
-
