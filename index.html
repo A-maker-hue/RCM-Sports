@@ -591,7 +591,87 @@ html.dark [data-reading-size][aria-pressed="true"] {
             </form>
         </div>
     </div>
+<!-- User Account Modal -->
+<div id="userAuthModal"
+     class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
 
+    <div class="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden my-auto">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+            <div class="flex items-center space-x-2 text-pitch-700 font-bold">
+                <i class="fa-solid fa-user"></i>
+                <span class="text-base text-slate-900">Cuenta RCM Sports</span>
+            </div>
+
+            <button type="button"
+                    onclick="closeUserAuthModal()"
+                    class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form onsubmit="handleUserLogin(event)" class="p-6 space-y-4">
+
+            <p class="text-sm text-slate-600">
+                Inicia sesión para comentar, responder y votar.
+            </p>
+
+            <div id="userAuthError"
+                 class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Nombre de usuario
+                </label>
+
+                <input type="text"
+                       id="userAuthUsername"
+                       required
+                       minlength="3"
+                       maxlength="30"
+                       autocomplete="username"
+                       placeholder="Ej: FutbolFan23"
+                       class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Contraseña
+                </label>
+
+                <input type="password"
+                       id="userAuthPassword"
+                       required
+                       minlength="6"
+                       autocomplete="current-password"
+                       placeholder="••••••••"
+                       class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
+            </div>
+
+            <div class="space-y-2 pt-2">
+
+                <button type="submit"
+                        class="w-full bg-pitch-600 hover:bg-pitch-700 text-white font-bold text-xs uppercase px-5 py-3 rounded-xl">
+                    Iniciar sesión
+                </button>
+
+                <button type="button"
+                        onclick="handleUserRegister()"
+                        class="w-full border border-pitch-600 text-pitch-700 hover:bg-pitch-50 font-bold text-xs uppercase px-5 py-3 rounded-xl">
+                    Crear cuenta
+                </button>
+
+            </div>
+
+            <p class="text-[11px] text-slate-400 text-center">
+                Solo necesitas un nombre de usuario y una contraseña.
+            </p>
+
+        </form>
+
+    </div>
+</div>
     <div id="publishModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="relative bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto">
             
@@ -762,18 +842,29 @@ html.dark [data-reading-size][aria-pressed="true"] {
                         Comentarios (<span id="modalCommentCount">0</span>)
                     </h3>
 
-                    <p class="text-xs text-slate-500">Por ahora, los comentarios y votos se guardan solo en este navegador.</p>
-                    <form onsubmit="submitComment(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <input type="text" id="commentAuthor" required placeholder="Tu Nombre / Nombre de Usuario" 
-                            class="w-full sm:w-1/2 bg-white border border-slate-200 text-xs text-slate-800 rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-pitch-600">
-                        <textarea id="commentText" required rows="3" placeholder="Escribe tu opinión sobre esta nota..." 
-                            class="w-full bg-white border border-slate-200 text-xs text-slate-800 rounded-lg p-3 focus:outline-none focus:border-pitch-600"></textarea>
-                        <div class="flex justify-end">
-                            <button type="submit" class="bg-pitch-600 hover:bg-pitch-700 text-white font-bold text-xs uppercase px-5 py-2.5 rounded-lg transition-all shadow-md">
-                                Comentar
-                            </button>
-                        </div>
-                    </form>
+                    <div id="commentAuthStatus"
+     class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-xl p-3">
+    Para comentar necesitas iniciar sesión o crear una cuenta.
+</div>
+
+<form id="commentForm"
+      onsubmit="submitComment(event)"
+      class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+
+    <textarea id="commentText"
+              required
+              maxlength="2000"
+              rows="3"
+              placeholder="Escribe tu opinión sobre esta nota..."
+              class="w-full bg-white border border-slate-200 text-xs text-slate-800 rounded-lg p-3 focus:outline-none focus:border-pitch-600"></textarea>
+
+    <div class="flex justify-end">
+        <button type="submit"
+                class="bg-pitch-600 hover:bg-pitch-700 text-white font-bold text-xs uppercase px-5 py-2.5 rounded-lg transition-all shadow-md">
+            Comentar
+        </button>
+    </div>
+</form>
 
                     <div id="modalCommentsList" class="space-y-3">
                         <!-- Comments JS Injected -->
@@ -995,7 +1086,188 @@ html.dark [data-reading-size][aria-pressed="true"] {
         let currentCategory = 'Todos';
         let currentSearchQuery = '';
         let activeModalArticleId = null;
+let currentUser = null;
 
+function normalizeUsername(username) {
+    return username.trim().toLowerCase();
+}
+
+function usernameToEmail(username) {
+    return `${normalizeUsername(username)}@users.rcmsports.local`;
+}
+
+function validateUsername(username) {
+    return /^[a-zA-Z0-9_]{3,30}$/.test(username);
+}
+
+function openUserAuthModal() {
+    document.getElementById('userAuthError').classList.add('hidden');
+    document.getElementById('userAuthModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeUserAuthModal() {
+    document.getElementById('userAuthModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function showUserAuthError(message) {
+    const box = document.getElementById('userAuthError');
+    box.textContent = message;
+    box.classList.remove('hidden');
+}
+
+async function handleUserRegister() {
+    const usernameInput = document.getElementById('userAuthUsername');
+    const passwordInput = document.getElementById('userAuthPassword');
+
+    const username = normalizeUsername(usernameInput.value);
+    const password = passwordInput.value;
+
+    document.getElementById('userAuthError').classList.add('hidden');
+
+    if (!validateUsername(username)) {
+        showUserAuthError(
+            'El nombre de usuario debe tener entre 3 y 30 caracteres y usar solo letras, números o _.'
+        );
+        return;
+    }
+
+    if (password.length < 6) {
+        showUserAuthError('La contraseña debe tener al menos 6 caracteres.');
+        return;
+    }
+
+    try {
+        if (!db) throw new Error('No se pudo conectar con Supabase.');
+
+        const email = usernameToEmail(username);
+
+        const { data, error } = await db.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    username
+                }
+            }
+        });
+
+        if (error) {
+            if (error.message.toLowerCase().includes('already')) {
+                throw new Error('Ese nombre de usuario ya está registrado.');
+            }
+
+            throw error;
+        }
+
+        if (!data.user || !data.session) {
+            throw new Error(
+                'La cuenta fue creada, pero Supabase está pidiendo confirmación por correo. Lo configuraremos en el siguiente paso.'
+            );
+        }
+
+        currentUser = {
+            id: data.user.id,
+            username
+        };
+
+        closeUserAuthModal();
+        updateCommentAuthUI();
+
+    } catch (error) {
+        showUserAuthError(
+            error.message || 'No se pudo crear la cuenta.'
+        );
+    }
+}
+
+async function handleUserLogin(event) {
+    event.preventDefault();
+
+const usernameInput = document.getElementById('userAuthUsername');
+const passwordInput = document.getElementById('userAuthPassword');
+
+const username = normalizeUsername(usernameInput.value);
+const password = passwordInput.value;
+
+    document.getElementById('userAuthError').classList.add('hidden');
+
+    if (!validateUsername(username)) {
+        showUserAuthError('Nombre de usuario no válido.');
+        return;
+    }
+
+    try {
+        if (!db) throw new Error('No se pudo conectar con Supabase.');
+
+        const { data, error } = await db.auth.signInWithPassword({
+            email: usernameToEmail(username),
+            password
+        });
+
+        if (error || !data.user) {
+            throw new Error('Nombre de usuario o contraseña incorrectos.');
+        }
+
+        currentUser = {
+    id: data.user.id,
+    username
+};
+
+        passwordInput.value = '';
+
+        closeUserAuthModal();
+        updateCommentAuthUI();
+
+    } catch (error) {
+        showUserAuthError(
+            error.message || 'No se pudo iniciar sesión.'
+        );
+    }
+}
+
+function updateCommentAuthUI() {
+    const status = document.getElementById('commentAuthStatus');
+    const form = document.getElementById('commentForm');
+
+    if (!status || !form) return;
+
+    if (currentUser) {
+        status.innerHTML = `
+            Comentando como <strong>${escapeHTML(currentUser.username)}</strong>
+            ·
+            <button type="button"
+                    onclick="handleUserLogout()"
+                    class="text-pitch-700 font-bold hover:underline">
+                Cerrar sesión
+            </button>
+        `;
+
+        form.classList.remove('hidden');
+
+    } else {
+        status.innerHTML = `
+            Para comentar necesitas
+            <button type="button"
+                    onclick="openUserAuthModal()"
+                    class="text-pitch-700 font-bold hover:underline">
+                iniciar sesión o crear una cuenta
+            </button>.
+        `;
+
+        form.classList.add('hidden');
+    }
+}
+
+async function handleUserLogout() {
+    if (db) {
+        await db.auth.signOut();
+    }
+
+    currentUser = null;
+    updateCommentAuthUI();
+}
         const categoryFallbackImages = {
             'Fútbol': 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
             'Fútbol Americano Colegial': 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&auto=format&fit=crop&q=80',
@@ -1009,22 +1281,38 @@ html.dark [data-reading-size][aria-pressed="true"] {
             document.getElementById('dataStatus').textContent = message;
         }
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            // Never trust the old browser-only administrator session.
-            try { localStorage.removeItem('rcm_sports_active_admin'); } catch {}
-            articles = defaultArticles.map(a => withLocalInteractions({...a, remote: false}));
-            renderAdminUI();
-            renderArticlesFeed();
-            renderPoll();
-            renderTrending();
-            if (db) {
-                db.auth.onAuthStateChange(() => {
-                    // Run outside the Auth callback to avoid its session lock.
-                    setTimeout(loadAdminSession, 0);
-                });
-            }
-            await Promise.allSettled([loadAdminSession(), loadArticlesFromStorage()]);
+       window.addEventListener('DOMContentLoaded', async () => {
+    // Never trust the old browser-only administrator session.
+    try {
+        localStorage.removeItem('rcm_sports_active_admin');
+    } catch {}
+
+    articles = defaultArticles.map(a =>
+        withLocalInteractions({...a, remote: false})
+    );
+
+    renderAdminUI();
+    renderArticlesFeed();
+    renderPoll();
+    renderTrending();
+
+    if (db) {
+        db.auth.onAuthStateChange(() => {
+            // Run outside the Auth callback to avoid its session lock.
+            setTimeout(() => {
+                loadAdminSession();
+                loadUserSession();
+            }, 0);
         });
+    }
+
+    await loadUserSession();
+
+    await Promise.allSettled([
+        loadAdminSession(),
+        loadArticlesFromStorage()
+    ]);
+});
 
         async function loadAdminSession() {
             const revision = ++authRevision;
@@ -1048,7 +1336,38 @@ html.dark [data-reading-size][aria-pressed="true"] {
             renderAdminUI();
             renderArticlesFeed();
         }
+async function loadUserSession() {
+    try {
+        if (!db) {
+            currentUser = null;
+            updateCommentAuthUI();
+            return;
+        }
 
+        const { data, error } = await db.auth.getUser();
+
+        if (error || !data.user) {
+            currentUser = null;
+            updateCommentAuthUI();
+            return;
+        }
+
+           const username =
+    data.user.user_metadata?.username ||
+    data.user.email?.split('@')[0];
+
+currentUser = {
+    id: data.user.id,
+    username
+};
+
+        updateCommentAuthUI();
+
+    } catch {
+        currentUser = null;
+        updateCommentAuthUI();
+    }
+}
 
         function openLoginModal() {
             document.getElementById('loginErrorMsg').classList.add('hidden');
@@ -1552,7 +1871,8 @@ renderRelatedStories(article);
             
             updateModalLikeBtn(article);
             renderModalComments(article);
-
+loadCommentsFromSupabase(article.id);
+            
             document.getElementById('articleModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
@@ -1871,41 +2191,107 @@ function voteComment(articleId, commentId, direction) {
     renderModalComments(article);
 }
 
-function submitComment(e) {
+async function submitComment(e) {
     e.preventDefault();
-    if (!activeModalArticleId) return;
 
-    const article = articles.find(
-        a => a.id === activeModalArticleId
-    );
+    if (!currentUser) {
+        openUserAuthModal();
+        return;
+    }
 
-    const authorInput = document.getElementById('commentAuthor');
+    if (!activeModalArticleId || !db) return;
+
     const textInput = document.getElementById('commentText');
-
-    const author = authorInput.value.trim();
     const text = textInput.value.trim();
 
-    if (!article || !author || !text) return;
+    if (!text) return;
 
-    prepareComments(article);
+    const button = e.target.querySelector('button[type="submit"]');
 
-    article.comments.unshift({
-        id: crypto.randomUUID(),
-        author: author.slice(0, 80),
-        text: text.slice(0, 2000),
-        date: new Date().toLocaleDateString('es'),
-        upvotes: 0,
-        downvotes: 0,
-        myVote: 0,
-        replies: []
-    });
+    if (button.disabled) return;
 
-    saveArticlesToStorage();
-    textInput.value = '';
-        renderModalComments(article);
+    button.disabled = true;
+
+    const originalText = button.textContent;
+    button.textContent = 'Publicando...';
+
+    try {
+        const { error } = await db
+            .from('comments')
+            .insert({
+    article_id: String(activeModalArticleId),
+    user_id: currentUser.id,
+    author: currentUser.username,
+    body: text
+});
+
+        if (error) throw error;
+
+        textInput.value = '';
+
+        await loadCommentsFromSupabase(activeModalArticleId);
+
+    } catch (error) {
+        console.error(error);
+        alert('No se pudo publicar el comentario. Inténtalo de nuevo.');
+    } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+    }
 }
 
-function filterByCategory(category) {
+
+async function loadCommentsFromSupabase(articleId) {
+    if (!db) return;
+
+    try {
+        const { data: comments, error } = await db
+            .from('comments')
+            .select('id, article_id, parent_id, user_id, author, body, created_at')
+            .eq('article_id', String(articleId))
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const article = articles.find(
+            article => String(article.id) === String(articleId)
+        );
+
+        if (!article) return;
+
+        article.comments = (comments || [])
+            .filter(comment => !comment.parent_id)
+            .map(comment => ({
+                id: comment.id,
+                author: comment.author || 'Usuario',
+                text: comment.body,
+                date: new Date(comment.created_at)
+                    .toLocaleDateString('es'),
+                upvotes: 0,
+                downvotes: 0,
+                myVote: 0,
+                replies: (comments || [])
+                    .filter(reply => reply.parent_id === comment.id)
+                    .map(reply => ({
+                        id: reply.id,
+                        author:
+    reply.author || 'Usuario',
+                        text: reply.body,
+                        date: new Date(reply.created_at)
+                            .toLocaleDateString('es')
+                    }))
+            }));
+
+        renderModalComments(article);
+
+    } catch (error) {
+        console.error(
+            'Error cargando comentarios:',
+            error
+        );
+    }
+}
+        function filterByCategory(category) {
     currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => {
                 if (btn.dataset.category === category) {
