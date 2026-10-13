@@ -124,34 +124,42 @@ begin
  if to_regclass('public.comment_votes') is null then
   select format_type(a.atttypid,a.atttypmod) into idtype from pg_attribute a
   where a.attrelid='public.comments'::regclass and a.attname='id';
-  execute format('create table public.comment_votes(comment_id %s not null references public.comments(id) on delete cascade,user_id uuid not null references auth.users(id) on delete cascade,vote smallint not null,primary key(comment_id,user_id))',idtype);
+  execute format('create table public.comment_votes(comment_id %s not null references public.comments(id) on delete cascade,user_id uuid not null references auth.users(id) on delete cascade,value smallint not null,primary key(comment_id,user_id))',idtype);
  else
-  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='comment_votes' and column_name='vote') then
+  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='comment_votes' and column_name='value') then
    select count(*),min(column_name) into candidates,candidate from information_schema.columns
-    where table_schema='public' and table_name='comment_votes' and column_name in ('direction','value','vote_value');
-   if candidates=1 then execute format('alter table public.comment_votes rename column %I to vote',candidate);
-   elsif candidates=0 and not exists(select 1 from public.comment_votes) then alter table public.comment_votes add column vote smallint;
+    where table_schema='public' and table_name='comment_votes' and column_name in ('direction','vote','vote_value');
+   if candidates=1 then execute format('alter table public.comment_votes rename column %I to value',candidate);
+   elsif candidates=0 and not exists(select 1 from public.comment_votes) then alter table public.comment_votes add column value smallint;
    else raise exception 'RCM: votos existentes sin una columna de dirección inequívoca. No se modificó ningún dato; revisar esquema.'; end if;
   end if;
  end if;
- if exists(select 1 from information_schema.columns where table_schema='public' and table_name='comment_votes' and column_name='vote' and data_type not in ('smallint','integer','bigint')) then
+ if exists(select 1 from information_schema.columns where table_schema='public' and table_name='comment_votes' and column_name='value' and data_type not in ('smallint','integer','bigint')) then
   raise exception 'RCM: la dirección de voto debe ser un entero -1 o 1. No se convierten datos automáticamente.';
  end if;
- if exists(select 1 from public.comment_votes where vote is null or vote not in(-1,1) or user_id is null or comment_id is null) then
+ if exists(select 1 from public.comment_votes where value is null or value not in(-1,1) or user_id is null or comment_id is null) then
   raise exception 'RCM: existen votos no válidos. Revisar sin borrar datos.';
  end if;
  if exists(select 1 from public.comment_votes group by comment_id,user_id having count(*)>1) then
   raise exception 'RCM: existen votos duplicados; revisar qué voto conservar antes de continuar.';
  end if;
 end $$;
-alter table public.comment_votes alter column vote set not null;
+alter table public.comment_votes alter column value set not null;
 alter table public.comment_votes alter column user_id set not null;
 alter table public.comment_votes alter column comment_id set not null;
 alter table public.comment_votes drop constraint if exists rcm_vote_direction;
-alter table public.comment_votes add constraint rcm_vote_direction check(vote in(-1,1));
-create unique index if not exists rcm_vote_once on public.comment_votes(comment_id,user_id);
+alter table public.comment_votes add constraint rcm_vote_direction check(value in(-1,1));
+do $$ declare cid smallint; uid smallint; begin
+ select attnum into cid from pg_attribute where attrelid='public.comment_votes'::regclass and attname='comment_id';
+ select attnum into uid from pg_attribute where attrelid='public.comment_votes'::regclass and attname='user_id';
+ if not exists(select 1 from pg_index where indrelid='public.comment_votes'::regclass and indisunique and indisvalid
+  and indpred is null and indexprs is null and indnkeyatts=2
+  and indkey::text in(format('%s %s',cid,uid),format('%s %s',uid,cid))) then
+  create unique index rcm_vote_once on public.comment_votes(comment_id,user_id);
+ end if;
+end $$;
 create index if not exists rcm_comments_article on public.comments(article_id,created_at desc);
--- Replace only single-column vote foreign keys pointing to the same known parent.
+-- Replace only single-column foreign keys on vote rows pointing to the same known parent.
 -- Keeping a previous NO ACTION FK alongside a CASCADE FK can block legitimate deletes.
 do $$ declare fk record; begin
  for fk in select conname from pg_constraint
@@ -220,20 +228,20 @@ create policy rcm_votes_read_guard on public.comment_votes as restrictive for se
 drop policy if exists rcm_votes_insert on public.comment_votes;
 create policy rcm_votes_insert on public.comment_votes for insert to authenticated with check(user_id=(select auth.uid()) and exists(select 1 from public.comments c where c.id=comment_id));
 drop policy if exists rcm_votes_insert_guard on public.comment_votes;
-create policy rcm_votes_insert_guard on public.comment_votes as restrictive for insert to anon,authenticated with check(user_id=(select auth.uid()) and exists(select 1 from public.comments c where c.id=comment_id));
+create policy rcm_votes_insert_guard on public.comment_votes as restrictive for insert to anon,authenticated with check((not coalesce(((select auth.jwt())->>'is_anonymous')::boolean,false) and user_id=(select auth.uid())) and exists(select 1 from public.comments c where c.id=comment_id));
 drop policy if exists rcm_votes_update on public.comment_votes;
 create policy rcm_votes_update on public.comment_votes for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()) and exists(select 1 from public.comments c where c.id=comment_id));
 drop policy if exists rcm_votes_update_guard on public.comment_votes;
-create policy rcm_votes_update_guard on public.comment_votes as restrictive for update to anon,authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()) and exists(select 1 from public.comments c where c.id=comment_id));
+create policy rcm_votes_update_guard on public.comment_votes as restrictive for update to anon,authenticated using((not coalesce(((select auth.jwt())->>'is_anonymous')::boolean,false) and user_id=(select auth.uid()))) with check((not coalesce(((select auth.jwt())->>'is_anonymous')::boolean,false) and user_id=(select auth.uid())) and exists(select 1 from public.comments c where c.id=comment_id));
 drop policy if exists rcm_votes_delete on public.comment_votes;
 create policy rcm_votes_delete on public.comment_votes for delete to authenticated using(user_id=(select auth.uid()));
 drop policy if exists rcm_votes_delete_guard on public.comment_votes;
-create policy rcm_votes_delete_guard on public.comment_votes as restrictive for delete to anon,authenticated using(user_id=(select auth.uid()));
+create policy rcm_votes_delete_guard on public.comment_votes as restrictive for delete to anon,authenticated using((not coalesce(((select auth.jwt())->>'is_anonymous')::boolean,false) and user_id=(select auth.uid())));
 
 create or replace view public.rcm_comment_totals with(security_invoker=true) as
 select c.id::text as id,a.id::text as article_id,c.parent_id::text as parent_id,c.author,c.body,c.created_at,a.title as article_title,
- count(v.vote) filter(where v.vote=1) as upvotes,count(v.vote) filter(where v.vote=-1) as downvotes,
- coalesce(max(v.vote) filter(where v.user_id=(select auth.uid())),0)::int as my_vote
+ count(v.value) filter(where v.value=1) as upvotes,count(v.value) filter(where v.value=-1) as downvotes,
+ coalesce(max(v.value) filter(where v.user_id=(select auth.uid())),0)::int as my_vote
 from public.comments c join public.articles a on (a.id::text=c.article_id::text or a.legacy_id=c.article_id::text) and a.is_public
 left join public.comment_votes v on v.comment_id=c.id
 group by c.id,c.article_id,c.parent_id,c.author,c.body,c.created_at,a.id,a.title;
@@ -242,7 +250,7 @@ grant select on public.rcm_comment_totals to anon,authenticated;
 create or replace function public.rcm_set_comment_vote(p_comment_id text,p_vote integer) returns void
 language plpgsql security invoker set search_path='' as $$
 begin
- if auth.uid() is null then raise exception 'RCM: inicia sesión para votar'; end if;
+ if auth.uid() is null or coalesce((auth.jwt()->>'is_anonymous')::boolean,false) then raise exception 'RCM: inicia sesión para votar'; end if;
  if p_vote is null or p_vote not in(-1,0,1) then raise exception 'RCM: voto inválido'; end if;
  perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||':'||p_comment_id,0));
  if not exists(select 1 from public.comments c join public.articles a on (a.id::text=c.article_id::text or a.legacy_id=c.article_id::text) where c.id::text=p_comment_id and a.is_public) then
@@ -250,9 +258,9 @@ begin
  end if;
  if p_vote=0 then delete from public.comment_votes where comment_id::text=p_comment_id and user_id=auth.uid();
  else
-  insert into public.comment_votes(comment_id,user_id,vote)
+  insert into public.comment_votes(comment_id,user_id,value)
   select c.id,auth.uid(),p_vote from public.comments c where c.id::text=p_comment_id
-  on conflict(comment_id,user_id) do update set vote=excluded.vote;
+  on conflict(comment_id,user_id) do update set value=excluded.value;
  end if;
 end $$;
 revoke all on function public.rcm_set_comment_vote(text,integer) from public;
@@ -360,7 +368,7 @@ end $$;
 revoke all on function public.rcm_publish_ranking(text,text[],timestamptz) from public;
 grant execute on function public.rcm_publish_ranking(text,text[],timestamptz) to authenticated;
 
--- Grant usage only for identity/serial sequences actually owned by comment and vote columns.
+-- Grant usage only for identity/serial sequences actually owned by comment and value columns.
 do $$ declare seq record; begin
  for seq in select distinct sn.nspname as schema_name,s.relname as sequence_name
  from pg_class s join pg_namespace sn on sn.oid=s.relnamespace join pg_depend d on d.objid=s.oid
