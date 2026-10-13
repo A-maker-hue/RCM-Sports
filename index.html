@@ -18,32 +18,7 @@
 </script>
     <title>RCM SPORTS | Blog Deportivo</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pitch: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            500: '#22c55e',
-                            600: '#16a34a', // Grass Green Primary
-                            700: '#15803d', // Dark Grass Green
-                            800: '#166534',
-                            900: '#14532d',
-                            950: '#052e16'
-                        },
-                        darkslate: '#0f172a'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="assets/site.css">
 
     <!-- Font Awesome Icons & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -312,13 +287,14 @@ html.dark [data-reading-size][aria-pressed="true"] {
     </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<link rel="stylesheet" href="assets/community.css">
 </head>
 <body class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-900 selection:bg-pitch-600 selection:text-white">
 
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                
+
                 <!-- Brand Logo -->
                 <a href="#" onclick="filterByCategory('Todos')" class="flex items-center space-x-3 group">
                     <div class="w-11 h-11 bg-gradient-to-tr from-pitch-700 to-pitch-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-pitch-600/30 group-hover:scale-105 transition-transform duration-300">
@@ -333,7 +309,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 <!-- Search Input Bar (Desktop) -->
                 <div class="hidden md:flex flex-1 max-w-md mx-8">
                     <div class="relative w-full">
-                        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Buscar noticias, análisis, jugadas..." 
+                        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Buscar noticias, análisis, jugadas..."
                             class="w-full bg-slate-100 border border-slate-200 text-sm text-slate-800 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white transition-all shadow-inner placeholder-slate-400">
                         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
                     </div>
@@ -351,8 +327,9 @@ html.dark [data-reading-size][aria-pressed="true"] {
            text-slate-600 flex items-center justify-center">
     <i id="themeIcon" class="fa-solid fa-moon" aria-hidden="true"></i>
 </button>
-                    
+
                     <!-- Guest State: User sign-in and registration -->
+                    <div id="readerSession" class="hidden rcm-row"></div>
                     <div id="guestAdminContainer">
                         <button type="button" onclick="openUserAuthModal()" aria-label="Iniciar sesión o crear cuenta" class="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold py-2.5 px-3.5 sm:px-4 rounded-xl transition-all">
                             <i class="fa-solid fa-right-to-bracket text-pitch-700"></i>
@@ -394,7 +371,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
             <!-- Mobile Search Dropdown -->
             <div id="mobileSearchBox" class="hidden md:hidden pb-4 pt-1">
-                <input type="text" id="mobileSearchInput" oninput="handleMobileSearch()" placeholder="Buscar en RCM SPORTS..." 
+                <input type="text" id="mobileSearchInput" oninput="handleMobileSearch()" placeholder="Buscar en RCM SPORTS..."
                     class="w-full bg-slate-100 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600">
             </div>
 
@@ -434,22 +411,30 @@ html.dark [data-reading-size][aria-pressed="true"] {
             <button type="button" onclick="exportLegacyArticles()" class="px-3 py-2 rounded-lg border border-slate-300">Descargar copia de notas antiguas</button>
         </div>
     </div>
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    <main id="mainContent" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
 
+        <div id="articleMissing" class="rcm-panel hidden" role="alert"><p>No encontramos esta publicación. Puede que haya sido eliminada.</p><button type="button" onclick="closeModal()">Volver al inicio</button></div>
+        <section id="nflRankings" class="rcm-panel hidden" aria-labelledby="rankingTitle">
+            <div class="rcm-row"><h2 id="rankingTitle">NFL Power Rankings</h2><button id="rankingEditButton" class="hidden" onclick="openRankingEditor()">Editar ranking</button></div>
+            <p id="rankingEdition"></p><p id="rankingStatus" role="status">Cargando ranking…</p>
+            <button id="rankingPause" class="hidden" onclick="toggleRankingMotion()" aria-pressed="false">Pausar movimiento</button>
+            <div id="rankingViewport" class="rcm-ticker" aria-hidden="true"><div id="rankingTrack" class="rcm-track"></div></div>
+            <details id="rankingStatic"><summary>Lista completa de los diez equipos</summary><ol id="rankingList" class="rcm-ranking-list"></ol></details>
+        </section>
         <!-- Active Filter Indicator Bar -->
         <div id="filterIndicator" class="hidden mb-6 flex items-center justify-between bg-pitch-50 border border-pitch-200 px-4 py-3 rounded-xl text-pitch-900">
             <div class="text-sm">
-                <span class="text-slate-600">Filtrando por:</span> 
+                <span class="text-slate-600">Filtrando por:</span>
                 <span id="filterLabel" class="font-bold text-pitch-700 ml-1"></span>
             </div>
             <button onclick="resetFilters()" class="text-xs font-semibold text-pitch-700 hover:text-pitch-900 underline">Limpiar filtros</button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
+
             <!-- Main Content Area (8 Columns) -->
             <div class="lg:col-span-8 space-y-8">
-                
+
                 <!-- Featured Hero Article -->
                 <section id="heroSection">
                     <!-- Hero Card JS Injected -->
@@ -511,11 +496,13 @@ html.dark [data-reading-size][aria-pressed="true"] {
                         <span class="text-[10px] bg-pitch-100 text-pitch-800 font-bold px-2 py-0.5 rounded-full">TENDENCIA</span>
                     </div>
 
+                    <p class="text-xs text-slate-500 mb-3">Selección ordenada por tus «me gusta» en este navegador. Todavía no medimos lecturas reales.</p>
                     <div id="trendingList" class="space-y-4">
                         <!-- Trending items injected by JS -->
                     </div>
                 </div>
 
+                <section class="rcm-panel" aria-labelledby="communityTitle"><h2 id="communityTitle">La comunidad opina</h2><div id="communityLeaders" aria-live="polite">Cargando comentarios destacados…</div></section>
                 <!-- Newsletter Subscription Card -->
                 <div class="bg-gradient-to-br from-pitch-900 to-darkslate rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
                     <div class="w-10 h-10 bg-white/10 text-pitch-200 rounded-xl flex items-center justify-center mb-3">
@@ -528,7 +515,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
                     </p>
 
                     <form id="newsletterForm" onsubmit="handleNewsletter(event)" class="space-y-3">
-                        <input type="email" id="newsletterEmail" required placeholder="tu.correo@deporte.com" 
+                        <input type="email" id="newsletterEmail" required placeholder="tu.correo@deporte.com"
                             class="w-full bg-white/10 border border-white/20 text-xs text-white placeholder-slate-400 rounded-xl px-4 py-3 focus:outline-none focus:bg-white/20 transition-all">
                         <button type="submit" class="w-full bg-pitch-500 hover:bg-pitch-600 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition-all shadow-md">
                             Suscribirme Gratis
@@ -546,53 +533,8 @@ html.dark [data-reading-size][aria-pressed="true"] {
         </div>
     </main>
 
-    <div id="loginModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden my-auto">
-            
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-                <div class="flex items-center space-x-2 text-pitch-700 font-bold">
-                    <i class="fa-solid fa-user-shield text-lg"></i>
-                    <span class="text-base text-slate-900">Iniciar Sesión de Administrador</span>
-                </div>
-                <button onclick="closeLoginModal()" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <form onsubmit="handleAdminLogin(event)" class="p-6 space-y-4">
-                
-                <div id="loginErrorMsg" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
-                    <!-- Error text -->
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Correo del editor</label>
-                    <input type="email" id="loginUsername" autocomplete="username" required placeholder="tu@correo.com" 
-                        class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contraseña</label>
-                    <input type="password" autocomplete="current-password" id="loginPassword" required placeholder="••••••••" 
-                        class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
-                </div>
-
-                <p class="text-xs text-slate-500">Acceso para los editores autorizados de RCM-Sports.</p>
-
-                <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-pitch-600 hover:bg-pitch-700 text-white text-xs font-bold uppercase tracking-wider shadow-md">
-                        Ingresar
-                    </button>
-                </div>
-
-            </form>
-        </div>
-    </div>
 <!-- User Account Modal -->
-<div id="userAuthModal"
+<div id="userAuthModal" role="dialog" aria-modal="true" aria-label="Iniciar sesión o crear una cuenta"
      class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
      style="z-index: 10000;">
 
@@ -623,14 +565,14 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Nombre de usuario
+                    Usuario o correo de una cuenta existente
                 </label>
 
                 <input type="text"
                        id="userAuthUsername"
                        required
                        minlength="3"
-                       maxlength="30"
+                       maxlength="254"
                        autocomplete="username"
                        placeholder="Ej: FutbolFan23"
                        class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
@@ -666,7 +608,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
             </div>
 
             <p class="text-[11px] text-slate-400 text-center">
-                Solo necesitas un nombre de usuario y una contraseña.
+                Para crear tu cuenta: usuario y contraseña. Si ya tienes una cuenta con correo, úsalo para iniciar sesión. Sin correo real, no hay recuperación automática de contraseña.
             </p>
 
         </form>
@@ -675,7 +617,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
 </div>
     <div id="publishModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="relative bg-white border border-slate-200 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto">
-            
+
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
                 <div class="flex items-center space-x-2 text-pitch-700 font-bold">
                     <i class="fa-solid fa-pen-to-square text-lg"></i>
@@ -688,10 +630,10 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
             <form onsubmit="handlePublishSubmit(event)" class="p-6 space-y-4">
                 <p id="publishErrorMsg" role="alert" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl"></p>
-                
+
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Título de la Noticia *</label>
-                    <input type="text" id="pubTitle" required placeholder="Ej: Victoria histórica en la final de fútbol colegial" 
+                    <input type="text" id="pubTitle" required placeholder="Ej: Victoria histórica en la final de fútbol colegial"
                         class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
                 </div>
 
@@ -711,26 +653,26 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Autor de la Nota</label>
-                        <input type="text" id="pubAuthor" required 
+                        <input type="text" id="pubAuthor" required
                             class="w-full bg-slate-100 border border-slate-200 text-sm text-slate-700 font-semibold rounded-xl px-4 py-2.5 focus:outline-none">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">URL de Imagen de Portada (Opcional)</label>
-                    <input type="url" id="pubImage" placeholder="https://images.unsplash.com/... (Si se deja en blanco se asignará una automáticamente)" 
+                    <input type="url" id="pubImage" placeholder="https://images.unsplash.com/... (Si se deja en blanco se asignará una automáticamente)"
                         class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Resumen Breve *</label>
-                    <input type="text" id="pubSummary" required placeholder="Una o dos oraciones descriptivas para la tarjeta..." 
+                    <input type="text" id="pubSummary" required placeholder="Una o dos oraciones descriptivas para la tarjeta..."
                         class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-pitch-600 focus:bg-white">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contenido Completo del Artículo *</label>
-                    <textarea id="pubBody" required rows="5" placeholder="Escribe aquí toda la crónica, análisis o noticia..." 
+                    <textarea id="pubBody" required rows="5" placeholder="Escribe aquí toda la crónica, análisis o noticia..."
                         class="w-full bg-slate-50 border border-slate-200 text-sm text-slate-800 rounded-xl p-4 focus:outline-none focus:border-pitch-600 focus:bg-white"></textarea>
                 </div>
 
@@ -749,7 +691,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
 
     <div id="articleModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
         <div class="relative bg-white border border-slate-200 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col my-auto">
-            
+
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
                 <span id="modalCategory" class="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-pitch-100 text-pitch-800 border border-pitch-200">
                     CATEGORÍA
@@ -766,7 +708,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
             </div>
 
             <div class="p-6 overflow-y-auto space-y-6 flex-1">
-                
+
                 <div>
                     <h1 id="modalTitle" class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight mb-3"></h1>
                     <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 pb-4 border-b border-slate-100">
@@ -835,11 +777,11 @@ html.dark [data-reading-size][aria-pressed="true"] {
                         <span class="text-xs">Me gusta</span>
                     </button>
 
-                    <div class="flex items-center space-x-2">
+                    <div class="flex flex-wrap gap-2 items-center">
                         <span class="text-xs text-slate-400 mr-1">Compartir:</span>
-                        <button type="button" onclick="copyShareLink(this)" class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-pitch-600 transition-colors" title="Copiar enlace de esta publicación" aria-label="Copiar enlace de esta publicación">
-                            <i class="fa-solid fa-link text-xs"></i>
-                        </button>
+                        <button type="button" onclick="shareArticle(this)" class="px-3 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-pitch-600 transition-colors" title="Compartir publicación" aria-label="Compartir publicación">
+                            <i class="fa-solid fa-link text-xs" aria-hidden="true"></i><span class="ml-1">Compartir</span>
+                        </button><button type="button" onclick="copyShareLink(this)" class="rcm-button">Copiar enlace</button><button id="editArticleButton" type="button" onclick="openArticleEditor()" class="rcm-button hidden">Editar publicación</button>
                     </div>
                 </div>
 
@@ -885,7 +827,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
     <footer class="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs mt-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                
+
                 <div class="space-y-3">
                     <div class="flex items-center space-x-2">
                         <div class="w-8 h-8 bg-pitch-600 rounded-lg flex items-center justify-center text-white">
@@ -913,7 +855,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
                 <div>
                     <h4 class="font-bold text-white uppercase tracking-wider mb-3">Administración</h4>
                     <ul class="space-y-2">
-                        <li><a href="#" onclick="openLoginModal()" class="hover:text-pitch-400 transition-colors"><i class="fa-solid fa-lock mr-1"></i> Panel Admin</a></li>
+                        <li><a href="#" onclick="openLoginModal()" class="hover:text-pitch-400 transition-colors"><i class="fa-solid fa-lock mr-1"></i> Iniciar sesión</a></li>
                     </ul>
                 </div>
 
@@ -965,107 +907,7 @@ html.dark [data-reading-size][aria-pressed="true"] {
     <script>
 
 
-        const defaultArticles = [
-            {
-                id: 1,
-                title: "Sorpresa en el Fútbol Colegial: Los novatos que revolucionan el ranking nacional",
-                category: "Fútbol Americano Colegial",
-                featured: true,
-                author: "Adrián Mendoza",
-                authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-                date: "30 Sep 2026",
-                readTime: "5 min de lectura",
-                image: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=1000&auto=format&fit=crop&q=80",
-                summary: "Una revisión detallada de las jóvenes promesas universitarias que están rompiendo récords de yardas en la temporada de fútbol colegial.",
-                body: `<p>El fútbol americano colegial atraviesa una de las temporadas más impredecibles y apasionantes de los últimos años. Equipos fuera del Top 10 han logrado victorias históricas gracias al talento emergente de mariscales de campo novatos.</p>
-                       <p>La velocidad de lectura en la bolsa de protección y la efectividad en pases profundos han marcado la diferencia en los momentos más calientes del último cuarto.</p>`,
-                likes: 245,
-                userLiked: false,
-                comments: [
-                    { author: 'ColegialFan', text: '¡Increíble nivel de juego este año! La liga universitaria está mejor que nunca.', date: 'Hace 2 horas' }
-                ]
-            },
-            {
-                id: 2,
-                title: "Dominio y Posesión: La lección táctica que definió el choque de la jornada",
-                category: "Fútbol",
-                featured: false,
-                author: "Editor 2",
-                authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
-                date: "29 Sep 2026",
-                readTime: "6 min de lectura",
-                image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80",
-                summary: "Cómo el juego de pases rápidos y la presión alta sofocaron la salida del rival en un partido lleno de intensidad.",
-                body: `<p>En una auténtica exhibición táctica, el equipo local demostró que controlar el ritmo del mediocampo es la mejor defensa.</p>`,
-                likes: 310,
-                userLiked: false,
-                comments: []
-            },
-            {
-                id: 3,
-                title: "Estrategia Defensiva en la NFL: El Blitz que paraliza a los Quarterbacks élite",
-                category: "NFL",
-                featured: false,
-                author: "Editor 3",
-                authorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
-                date: "28 Sep 2026",
-                readTime: "4 min de lectura",
-                image: "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=800&auto=format&fit=crop&q=80",
-                summary: "Analizamos las formaciones defensivas más agresivas empleadas este domingo para provocar capturas y balones sueltos.",
-                body: `<p>Como se suele decir: las grandes defensivas son las que ganan partidos en enero.</p>`,
-                likes: 195,
-                userLiked: false,
-                comments: []
-            },
-            {
-                id: 4,
-                title: "Noche de Récord: 45 Puntos y Canasta en la Bocina",
-                category: "Básquetbol",
-                featured: false,
-                author: "Adrián Mendoza",
-                authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-                date: "27 Sep 2026",
-                readTime: "4 min de lectura",
-                image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&auto=format&fit=crop&q=80",
-                summary: "Un tiro espectacular a falta de 0.8 segundos le dio el triunfo al equipo de casa en un estadio enloquecido.",
-                body: `<p>La precisión desde la línea de tres puntos y una frialdad absoluta en los momentos decisivos sellaron la victoria.</p>`,
-                likes: 420,
-                userLiked: false,
-                comments: []
-            },
-            {
-                id: 5,
-                title: "Duelo Épico en la Pista Central: Batalla a cinco sets por el Grand Slam",
-                category: "Tenis",
-                featured: false,
-                author: "Marco Ramirez",
-                authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
-                date: "26 Sep 2026",
-                readTime: "5 min de lectura",
-                image: "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800&auto=format&fit=crop&q=80",
-                summary: "Un enfrentamiento cargado de dinamismo y tiros ganadores que mantuvo en suspenso a la afición en la gran final.",
-                body: `<p>Con peloteos que superaron los 25 golpes y saques a más de 210 km/h, el encuentro se decidió en un tie-break del quinto set para el recuerdo.</p>`,
-                likes: 280,
-                userLiked: false,
-                comments: []
-            },
-            {
-                id: 6,
-                title: "Ataque en la Montaña: La etapa reina sacude la clasificación general",
-                category: "Ciclismo",
-                featured: false,
-                author: "Eduard Carrera",
-                authorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
-                date: "25 Sep 2026",
-                readTime: "5 min de lectura",
-                image: "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&auto=format&fit=crop&q=80",
-                summary: "Una arrancada fulgurante a falta de 12 kilómetros para la meta le otorga la victoria de etapa y la camiseta de líder.",
-                body: `<p>El ascenso de categoría especial demonstrated quiénes tienen las piernas para luchar por el podio al final de la ronda ciclista.</p>`,
-                likes: 315,
-                userLiked: false,
-                comments: []
-            }
-        ];
+        const defaultArticles = []; // Existing static articles are preserved by the SQL migration.
 
         let pollData = {
             question: '¿Qué disciplina dará la mayor sorpresa esta temporada?',
@@ -1108,7 +950,7 @@ function validateUsername(username) {
 }
 
 function syncModalScrollLock() {
-    const modalIds = ['loginModal', 'userAuthModal', 'publishModal', 'articleModal'];
+    const modalIds = ['userAuthModal', 'publishModal', 'articleModal'];
     const hasOpenModal = modalIds.some(id => {
         const modal = document.getElementById(id);
         return modal && !modal.classList.contains('hidden');
@@ -1117,13 +959,16 @@ function syncModalScrollLock() {
 }
 
 function openUserAuthModal() {
+    authPreviousFocus = document.activeElement;
     document.getElementById('userAuthError').classList.add('hidden');
     document.getElementById('userAuthModal').classList.remove('hidden');
+    document.getElementById('userAuthUsername').focus();
     syncModalScrollLock();
 }
 
 function closeUserAuthModal() {
     document.getElementById('userAuthModal').classList.add('hidden');
+    authPreviousFocus?.focus();
     syncModalScrollLock();
 }
 
@@ -1154,6 +999,8 @@ async function handleUserRegister() {
         return;
     }
 
+    if (authSubmitting) return;
+    setAuthBusy(true);
     try {
         if (!db) throw new Error('No se pudo conectar con Supabase.');
 
@@ -1179,7 +1026,7 @@ async function handleUserRegister() {
 
         if (!data.user || !data.session) {
             throw new Error(
-                'La cuenta fue creada, pero Supabase está pidiendo confirmación por correo. Lo configuraremos en el siguiente paso.'
+                'No se pudo abrir la sesión. La configuración de confirmación por correo requiere revisión por el administrador.'
             );
         }
 
@@ -1188,6 +1035,7 @@ async function handleUserRegister() {
             username
         };
 
+        passwordInput.value = '';
         closeUserAuthModal();
         updateCommentAuthUI();
 
@@ -1195,7 +1043,7 @@ async function handleUserRegister() {
         showUserAuthError(
             error.message || 'No se pudo crear la cuenta.'
         );
-    }
+    } finally { setAuthBusy(false); }
 }
 
 async function handleUserLogin(event) {
@@ -1209,16 +1057,18 @@ const password = passwordInput.value;
 
     document.getElementById('userAuthError').classList.add('hidden');
 
-    if (!validateUsername(username)) {
-        showUserAuthError('Nombre de usuario no válido.');
+    if (!validateUsername(username) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(username)) {
+        showUserAuthError('Escribe tu usuario o el correo de tu cuenta existente.');
         return;
     }
 
+    if (authSubmitting) return;
+    setAuthBusy(true);
     try {
         if (!db) throw new Error('No se pudo conectar con Supabase.');
 
         const { data, error } = await db.auth.signInWithPassword({
-            email: usernameToEmail(username),
+            email: username.includes('@') ? username : usernameToEmail(username),
             password
         });
 
@@ -1228,7 +1078,7 @@ const password = passwordInput.value;
 
         currentUser = {
     id: data.user.id,
-    username
+    username: data.user.user_metadata?.username || data.user.user_metadata?.display_name || data.user.email?.split('@')[0] || username
 };
 
         passwordInput.value = '';
@@ -1237,6 +1087,7 @@ closeUserAuthModal();
 
 if (activeModalArticleId) {
     await loadCommentsFromSupabase(activeModalArticleId);
+    refreshCommunity();
 }
 
 updateCommentAuthUI();
@@ -1245,10 +1096,11 @@ updateCommentAuthUI();
         showUserAuthError(
             error.message || 'No se pudo iniciar sesión.'
         );
-    }
+    } finally { setAuthBusy(false); }
 }
 
 function updateCommentAuthUI() {
+    renderSessionHeader();
     const status = document.getElementById('commentAuthStatus');
     const form = document.getElementById('commentForm');
 
@@ -1283,9 +1135,11 @@ function updateCommentAuthUI() {
 
 async function handleUserLogout() {
     if (db) {
-        await db.auth.signOut();
+        const {error} = await db.auth.signOut();
+        if (error) { notifyCommunity('No se pudo cerrar sesión. Inténtalo otra vez.', true); return; }
     }
-
+    currentAdmin = null;
+    renderAdminUI();
     currentUser = null;
     updateCommentAuthUI();
 }
@@ -1316,16 +1170,6 @@ async function handleUserLogout() {
     renderArticlesFeed();
     renderPoll();
     renderTrending();
-
-    if (db) {
-        db.auth.onAuthStateChange(() => {
-            // Run outside the Auth callback to avoid its session lock.
-            setTimeout(() => {
-                loadAdminSession();
-                loadUserSession();
-            }, 0);
-        });
-    }
 
     await loadUserSession();
 
@@ -1376,12 +1220,12 @@ async function loadUserSession() {
         }
 
            const username =
-    data.user.user_metadata?.username ||
+    data.user.user_metadata?.username || data.user.user_metadata?.display_name ||
     data.user.email?.split('@')[0];
 
 currentUser = {
     id: data.user.id,
-    username
+    username: data.user.user_metadata?.username || data.user.user_metadata?.display_name || data.user.email?.split('@')[0] || username
 };
 
         updateCommentAuthUI();
@@ -1392,67 +1236,15 @@ currentUser = {
     }
 }
 
-        function openLoginModal() {
-            document.getElementById('loginErrorMsg').classList.add('hidden');
-            document.getElementById('loginModal').classList.remove('hidden');
-            syncModalScrollLock();
-        }
-
-        function closeLoginModal() {
-            document.getElementById('loginModal').classList.add('hidden');
-            syncModalScrollLock();
-        }
-
-        async function handleAdminLogin(e) {
-            e.preventDefault();
-            const button = e.target.querySelector('button[type="submit"]');
-            if (button.disabled) return;
-            button.disabled = true;
-            const errBox = document.getElementById('loginErrorMsg');
-            errBox.classList.add('hidden');
-            try {
-                if (!db) throw new Error('No se pudo conectar. Recarga la página e inténtalo de nuevo.');
-                const {error} = await db.auth.signInWithPassword({
-                    email: document.getElementById('loginUsername').value.trim(),
-                    password: document.getElementById('loginPassword').value
-                });
-                if (error) throw new Error('No se pudo iniciar sesión. Comprueba el correo, la contraseña y tu conexión.');
-                await loadAdminSession();
-                // A state-change callback may also be checking this same session.
-                if (!currentAdmin) {
-                    await loadAdminSession();
-                    if (!currentAdmin) throw new Error('No se pudo verificar tu permiso de editor. Revisa que esta cuenta esté autorizada.');
-                }
-                closeLoginModal();
-                document.getElementById('loginPassword').value = '';
-                setDataStatus('Sesión de editor iniciada. Las nuevas publicaciones se guardarán en línea.');
-            } catch (error) {
-                errBox.textContent = error.message;
-                errBox.classList.remove('hidden');
-            } finally {
-                button.disabled = false;
-            }
-        }
+        function openLoginModal() { openUserAuthModal(); }
 
         async function handleAdminLogout() {
-            try {
-                if (db) {
-                    const {error} = await db.auth.signOut({scope: 'local'});
-                    if (error) throw error;
-                }
-                ++authRevision;
-                currentAdmin = null;
-                renderAdminUI();
-                renderArticlesFeed();
-                closePublishModal();
-                setDataStatus('Sesión cerrada.');
-            } catch {
-                setDataStatus('No se pudo cerrar la sesión. Comprueba la conexión e inténtalo de nuevo.');
-            }
+            await handleUserLogout();
+            if (!currentUser) { closePublishModal(); renderArticlesFeed(); }
         }
 
-
         function renderAdminUI() {
+            renderSessionHeader();
             document.getElementById('legacyTools').classList.toggle('hidden', !currentAdmin || !readLegacyArticles().length);
             const modalDeleteButton = document.getElementById('modalDeleteArticleBtn');
             const modalArticle = articles.find(a => String(a.id) === String(activeModalArticleId));
@@ -1474,6 +1266,7 @@ currentUser = {
                 guestContainer.classList.remove('hidden');
                 loggedContainer.classList.add('hidden');
             }
+            renderSessionHeader();
         }
 
         function escapeHTML(value) {
@@ -1519,13 +1312,13 @@ currentUser = {
             return {...article,
                 likes: Math.max(0, Number(saved.likes) || 0),
                 userLiked: Boolean(saved.userLiked),
-                comments: Array.isArray(saved.comments) ? saved.comments : []
+                comments: article.remote ? [] : (Array.isArray(saved.comments) ? saved.comments : [])
             };
         }
 
         function fromDatabase(row) {
             return withLocalInteractions({
-                id: row.id, title: row.title, category: row.category,
+                id: row.id, legacyId: row.legacy_id, title: row.title, category: row.category,
                 author: row.author, image: safeImageURL(row.image),
                 authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(row.author),
                 summary: row.summary, body: row.body, featured: row.featured,
@@ -1542,7 +1335,7 @@ currentUser = {
                 if (!db) throw new Error('Conexión no disponible');
                 const rows = [];
                 for (let offset = 0; ; offset += 1000) {
-                    const {data, error} = await db.from('articles').select('*')
+                    const {data, error} = await db.from('articles').select('*').eq('is_public', true)
                         .order('created_at', {ascending: false}).order('id')
                         .range(offset, offset + 999);
                     if (error) throw error;
@@ -1552,6 +1345,7 @@ currentUser = {
                 articles = [...rows.map(fromDatabase), ...defaultArticles.map(a => withLocalInteractions({...a, remote: false}))];
                 renderArticlesFeed();
                 renderTrending();
+                refreshCommunity();
                 setDataStatus('');
             } catch {
                 setDataStatus('No se pudieron cargar las publicaciones en línea. Comprueba tu conexión y recarga la página.');
@@ -1561,7 +1355,7 @@ currentUser = {
         function saveArticlesToStorage() {
             // Interactions stay local in this release. Never overwrite published articles or the legacy backup.
             const saved = readJSON('rcm_sports_interactions_v2', {});
-            for (const a of articles) saved[a.id] = {likes: a.likes, userLiked: a.userLiked, comments: a.comments};
+            for (const a of articles) saved[a.id] = {likes: a.likes, userLiked: a.userLiked, comments: a.remote ? [] : a.comments};
             try { localStorage.setItem('rcm_sports_interactions_v2', JSON.stringify(saved)); }
             catch { setDataStatus('El navegador no pudo guardar esta interacción.'); }
         }
@@ -1612,9 +1406,10 @@ currentUser = {
 
 
         function renderArticlesFeed() {
+            document.getElementById('nflRankings').classList.toggle('hidden', currentCategory !== 'NFL');
             const filtered = articles.filter(art => {
                 const matchesCat = currentCategory === 'Todos' || art.category === currentCategory;
-                const matchesSearch = art.title.toLowerCase().includes(currentSearchQuery.toLowerCase()) || 
+                const matchesSearch = art.title.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
                                       art.summary.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
                                       art.category.toLowerCase().includes(currentSearchQuery.toLowerCase());
                 return matchesCat && matchesSearch;
@@ -1803,6 +1598,8 @@ currentUser = {
         }
 
         function openPublishModal() {
+            editingArticleId = null;
+            publishDraftId = null;
             if (!currentAdmin) {
                 openLoginModal();
                 return;
@@ -1833,7 +1630,7 @@ currentUser = {
             const title = document.getElementById('pubTitle').value.trim();
             try {
                 if (!title || !bodyText) throw new Error('Completa el título y el contenido.');
-                publishDraftId = publishDraftId || crypto.randomUUID();
+                publishDraftId = editingArticleId || publishDraftId || crypto.randomUUID();
                 const payload = {
                     id: publishDraftId, title, category,
                     author: document.getElementById('pubAuthor').value.trim() || currentAdmin.name,
@@ -1842,10 +1639,17 @@ currentUser = {
                     body: bodyText.split(/\n/).map(p => '<p>' + escapeHTML(p) + '</p>').join(''),
                     featured: false, created_by: currentAdmin.id
                 };
-                const {data, error} = await db.from('articles').upsert(payload, {onConflict:'id'}).select().single();
+                if (editingArticleId) {
+                    delete payload.created_by; delete payload.featured;
+                    if (bodyText === editingBodyText) payload.body = editingBodyHTML;
+                }
+                const request = editingArticleId ? db.from('articles').update(payload).eq('id', editingArticleId) : db.from('articles').insert(payload);
+                const {data, error} = await request.select().single();
                 if (error) throw new Error('No se pudo guardar en línea. Comprueba tu conexión y tu sesión e inténtalo de nuevo. El formulario conserva tu texto.');
                 articles = [fromDatabase(data), ...articles.filter(a => a.id !== data.id)];
                 publishDraftId = null;
+                editingArticleId = null;
+                if (String(activeModalArticleId) === String(data.id)) openArticleModal(data.id, {updateUrl: false});
                 closePublishModal();
                 e.target.reset();
                 renderAdminUI();
@@ -1877,7 +1681,7 @@ currentUser = {
                 const {data, error} = await db.from('articles').delete().eq('id', id).select('id');
                 if (error || !data.length) throw new Error('No se pudo eliminar');
                 articles = articles.filter(a => a.id !== id);
-                renderArticlesFeed(); renderTrending();
+                renderArticlesFeed(); renderTrending(); refreshCommunity();
                 if (activeModalArticleId === id) closeModal();
                 setDataStatus('Publicación eliminada.');
             } catch {
@@ -1887,6 +1691,7 @@ currentUser = {
 
 
         function openArticleModal(articleId, options = {}) {
+            document.getElementById('articleMissing').classList.add('hidden');
             const article = articles.find(a => String(a.id) === String(articleId));
             if (!article) return;
 
@@ -1909,16 +1714,18 @@ currentUser = {
             document.getElementById('modalBody').innerHTML = cleanBody(article.body);
             restoreReadingSize();
 renderRelatedStories(article);
-            
+
+            updateArticleEditorButton(article);
             updateModalLikeBtn(article);
-            renderModalComments(article);
+            document.getElementById('modalCommentsList').textContent = 'Cargando comentarios…';
 loadCommentsFromSupabase(article.id);
-            
+
             document.getElementById('articleModal').classList.remove('hidden');
             syncModalScrollLock();
         }
 
         function closeModal() {
+            document.getElementById('articleMissing').classList.add('hidden');
             document.getElementById('articleModal').classList.add('hidden');
             syncModalScrollLock();
             activeModalArticleId = null;
@@ -1929,21 +1736,11 @@ loadCommentsFromSupabase(article.id);
             const url = new URL(window.location.href);
             if (articleId == null) url.searchParams.delete('article');
             else url.searchParams.set('article', String(articleId));
-            window.history.replaceState(null, '', url.toString());
+            url.searchParams.delete('comment');
+            if (url.toString() !== window.location.href) window.history.pushState({article: articleId}, '', url.toString());
         }
 
-        function openArticleFromShareLink() {
-            const articleId = new URLSearchParams(window.location.search).get('article');
-            if (!articleId) return;
 
-            const article = articles.find(item => String(item.id) === String(articleId));
-            if (!article) {
-                setDataStatus('No encontramos esa publicación. Puede que ya no esté disponible.');
-                return;
-            }
-
-            openArticleModal(article.id, {updateUrl: false});
-        }
 
         function updateModalLikeBtn(article) {
             const likeBtn = document.getElementById('modalLikeBtn');
@@ -2007,253 +1804,11 @@ function prepareComments(article) {
     });
 }
 
-function renderModalComments(article) {
-    prepareComments(article);
 
-    const container = document.getElementById('modalCommentsList');
-    container.replaceChildren();
 
-    const total = article.comments.reduce(
-        (count, comment) => count + 1 + comment.replies.length,
-        0
-    );
 
-    document.getElementById('modalCommentCount').innerText = total;
 
-    if (article.comments.length === 0) {
-        const empty = document.createElement('p');
-        empty.className = 'text-xs text-slate-400 italic py-2';
-        empty.textContent = 'Sin comentarios. ¡Sé el primero en opinar!';
-        container.appendChild(empty);
-        return;
-    }
-
-    const columns = document.createElement('div');
-columns.className =
-    'grid grid-cols-1 md:grid-cols-2 gap-6 items-start';
-
-function createColumn(title) {
-    const section = document.createElement('section');
-    section.className = 'min-w-0 space-y-4';
-
-    const heading = document.createElement('h4');
-    heading.className =
-        'text-sm font-bold text-slate-800 pb-2';
-    heading.textContent = title;
-
-    const list = document.createElement('div');
-    list.className = 'space-y-4';
-
-    section.append(heading, list);
-    columns.appendChild(section);
-    return list;
-}
-
-const upvoteList = createColumn('▲ Más apoyados');
-const downvoteList = createColumn('▼ Más cuestionados');
-container.appendChild(columns);
-
-const positiveComments = article.comments
-    .filter(c => c.upvotes >= c.downvotes)
-    .sort((a, b) =>
-        b.upvotes - a.upvotes || a.downvotes - b.downvotes
-    );
-
-const negativeComments = article.comments
-    .filter(c => c.downvotes > c.upvotes)
-    .sort((a, b) =>
-        b.downvotes - a.downvotes || a.upvotes - b.upvotes
-    );
-
-[
-    [upvoteList, positiveComments],
-    [downvoteList, negativeComments]
-].forEach(([list, comments]) => {
-    if (comments.length === 0) {
-        const empty = document.createElement('p');
-        empty.className = 'text-xs text-slate-400 italic';
-        empty.textContent = 'Todavía no hay comentarios aquí.';
-        list.appendChild(empty);
-    }
-});
-
-const sorted = [...positiveComments, ...negativeComments];
-
-    sorted.forEach(comment => {
-        const card = document.createElement('div');
-        card.className =
-            'bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3';
-
-        const header = document.createElement('div');
-        header.className = 'flex justify-between items-center gap-3';
-
-        const author = document.createElement('strong');
-        author.className = 'text-xs text-slate-800';
-        author.textContent = comment.author;
-
-        const date = document.createElement('span');
-        date.className = 'text-xs text-slate-400';
-        date.textContent = comment.date;
-
-        header.append(author, date);
-
-        const text = document.createElement('p');
-        text.className =
-            'text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words';
-        text.textContent = comment.text;
-
-        const actions = document.createElement('div');
-        actions.className = 'flex flex-wrap items-center gap-3';
-
-        const upvote = document.createElement('button');
-        upvote.type = 'button';
-        upvote.className = 'text-xs font-bold text-pitch-600';
-        upvote.textContent = `▲ ${comment.upvotes}`;
-        upvote.setAttribute('aria-label', 'Votar a favor');
-        upvote.setAttribute(
-            'aria-pressed',
-            String(comment.myVote === 1)
-        );
-        upvote.onclick = () =>
-            voteComment(article.id, comment.id, 1);
-
-        const downvote = document.createElement('button');
-        downvote.type = 'button';
-        downvote.className = 'text-xs font-bold text-slate-500';
-        downvote.textContent = `▼ ${comment.downvotes}`;
-        downvote.setAttribute('aria-label', 'Votar en contra');
-        downvote.setAttribute(
-            'aria-pressed',
-            String(comment.myVote === -1)
-        );
-        downvote.onclick = () =>
-            voteComment(article.id, comment.id, -1);
-
-        const score = document.createElement('span');
-        score.className = 'text-xs text-slate-500';
-        score.textContent =
-            `${comment.upvotes - comment.downvotes} puntos`;
-
-        const replyButton = document.createElement('button');
-        replyButton.type = 'button';
-        replyButton.className =
-            'text-xs font-bold text-pitch-600 hover:underline';
-        replyButton.textContent = 'Responder';
-        replyButton.setAttribute('aria-expanded', 'false');
-
-        actions.append(upvote, downvote, score, replyButton);
-        card.append(header, text, actions);
-
-        comment.replies.forEach(reply => {
-            const replyCard = document.createElement('div');
-            replyCard.className =
-                'ml-4 border-l-2 border-pitch-200 pl-4 py-2 space-y-1';
-
-            const replyAuthor = document.createElement('strong');
-            replyAuthor.className = 'text-xs text-slate-800';
-            replyAuthor.textContent = reply.author;
-
-            const replyText = document.createElement('p');
-            replyText.className =
-                'text-sm text-slate-600 whitespace-pre-wrap break-words';
-            replyText.textContent = reply.text;
-
-            replyCard.append(replyAuthor, replyText);
-            card.appendChild(replyCard);
-        });
-
-        const form = document.createElement('form');
-        form.className = 'hidden space-y-2 pt-2';
-
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.required = true;
-        nameInput.maxLength = 80;
-        nameInput.placeholder = 'Tu nombre';
-        nameInput.setAttribute('aria-label', 'Tu nombre');
-        nameInput.className =
-            'w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800';
-
-        const replyInput = document.createElement('textarea');
-        replyInput.required = true;
-        replyInput.maxLength = 2000;
-        replyInput.rows = 3;
-        replyInput.placeholder = 'Escribe tu respuesta...';
-        replyInput.setAttribute('aria-label', 'Tu respuesta');
-        replyInput.className =
-            'w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800';
-
-        const submit = document.createElement('button');
-        submit.type = 'submit';
-        submit.className =
-            'bg-pitch-600 text-white rounded-lg px-4 py-2 text-xs font-bold';
-        submit.textContent = 'Publicar respuesta';
-
-        form.append(nameInput, replyInput, submit);
-
-        replyButton.onclick = () => {
-            const isHidden = form.classList.toggle('hidden');
-            replyButton.setAttribute(
-                'aria-expanded',
-                String(!isHidden)
-            );
-            replyButton.textContent = isHidden
-                ? 'Responder'
-                : 'Cancelar';
-
-            if (!isHidden) nameInput.focus();
-        };
-
-        form.onsubmit = event => {
-            event.preventDefault();
-
-            const name = nameInput.value.trim();
-            const replyText = replyInput.value.trim();
-
-            if (!name || !replyText) return;
-
-            comment.replies.push({
-                id: crypto.randomUUID(),
-                author: name,
-                text: replyText,
-                date: new Date().toLocaleDateString('es')
-            });
-
-            saveArticlesToStorage();
-            renderModalComments(article);
-        };
-
-        card.appendChild(form);
-        const destination = comment.downvotes > comment.upvotes     ? downvoteList     : upvoteList;  destination.appendChild(card);
-    });
-
-    saveArticlesToStorage();
-}
-
-function voteComment(articleId, commentId, direction) {
-    const article = articles.find(a => a.id === articleId);
-    if (!article) return;
-
-    prepareComments(article);
-
-    const comment = article.comments.find(c => c.id === commentId);
-    if (!comment) return;
-
-    // Remove the previous vote.
-    if (comment.myVote === 1) comment.upvotes--;
-    if (comment.myVote === -1) comment.downvotes--;
-
-    // Clicking the same vote again removes it.
-    comment.myVote = comment.myVote === direction ? 0 : direction;
-
-    if (comment.myVote === 1) comment.upvotes++;
-    if (comment.myVote === -1) comment.downvotes++;
-
-    saveArticlesToStorage();
-    renderModalComments(article);
-}
-
-async function submitComment(e) {
+        async function submitComment(e) {
     e.preventDefault();
 
     if (!currentUser) {
@@ -2292,6 +1847,7 @@ async function submitComment(e) {
         textInput.value = '';
 
         await loadCommentsFromSupabase(activeModalArticleId);
+    refreshCommunity();
 
     } catch (error) {
         console.error(error);
@@ -2303,56 +1859,8 @@ async function submitComment(e) {
 }
 
 
-async function loadCommentsFromSupabase(articleId) {
-    if (!db) return;
 
-    try {
-        const { data: comments, error } = await db
-            .from('comments')
-            .select('id, article_id, parent_id, user_id, author, body, created_at')
-            .eq('article_id', String(articleId))
-            .order('created_at', { ascending: false });
 
-        if (error) throw error;
-
-        const article = articles.find(
-            article => String(article.id) === String(articleId)
-        );
-
-        if (!article) return;
-
-        article.comments = (comments || [])
-            .filter(comment => !comment.parent_id)
-            .map(comment => ({
-                id: comment.id,
-                author: comment.author || 'Usuario',
-                text: comment.body,
-                date: new Date(comment.created_at)
-                    .toLocaleDateString('es'),
-                upvotes: 0,
-                downvotes: 0,
-                myVote: 0,
-                replies: (comments || [])
-                    .filter(reply => reply.parent_id === comment.id)
-                    .map(reply => ({
-                        id: reply.id,
-                        author:
-    reply.author || 'Usuario',
-                        text: reply.body,
-                        date: new Date(reply.created_at)
-                            .toLocaleDateString('es')
-                    }))
-            }));
-
-        renderModalComments(article);
-
-    } catch (error) {
-        console.error(
-            'Error cargando comentarios:',
-            error
-        );
-    }
-}
         function filterByCategory(category) {
     currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => {
@@ -2399,48 +1907,8 @@ async function loadCommentsFromSupabase(articleId) {
             document.getElementById('newsletterSuccess').classList.remove('hidden');
         }
 
-        async function copyShareLink(button) {
-            const article = articles.find(item => String(item.id) === String(activeModalArticleId));
-            if (!article) return;
 
-            const shareUrl = new URL(window.location.href);
-            shareUrl.searchParams.set('article', String(article.id));
-            const link = shareUrl.toString();
 
-            try {
-                if (navigator.clipboard && window.isSecureContext) {
-                    await navigator.clipboard.writeText(link);
-                } else {
-                    throw new Error('Clipboard API unavailable');
-                }
-            } catch {
-                const fallback = document.createElement('textarea');
-                fallback.value = link;
-                fallback.setAttribute('readonly', '');
-                fallback.style.position = 'fixed';
-                fallback.style.opacity = '0';
-                document.body.appendChild(fallback);
-                fallback.select();
-                const copied = document.execCommand('copy');
-                fallback.remove();
-                if (!copied) {
-                    setDataStatus('No se pudo copiar el enlace. Puedes copiarlo desde la barra del navegador.');
-                    return;
-                }
-            }
-
-            if (button) {
-                const originalHTML = button.innerHTML;
-                button.innerHTML = '<i class="fa-solid fa-check text-xs text-pitch-600"></i>';
-                button.title = 'Enlace copiado';
-                button.setAttribute('aria-label', 'Enlace copiado');
-                setTimeout(() => {
-                    button.innerHTML = originalHTML;
-                    button.title = 'Copiar enlace de esta publicación';
-                    button.setAttribute('aria-label', 'Copiar enlace de esta publicación');
-                }, 2000);
-            }
-        }
         function setReadingSize(size) {
     const allowedSizes = ['normal', 'large', 'extra'];
     if (!allowedSizes.includes(size)) size = 'normal';
@@ -2550,5 +2018,7 @@ function toggleDarkMode() {
 
 updateThemeButton();
     </script>
+<script src="assets/nfl-teams.js"></script>
+<script src="assets/community.js"></script>
 </body>
 </html>

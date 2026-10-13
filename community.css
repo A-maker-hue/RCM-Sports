@@ -1,0 +1,49 @@
+.rcm-panel {background:#fff;border:1px solid #e2e8f0;border-radius:1rem;padding:1.4rem;margin-bottom:1.5rem;min-width:0;color:#334155}
+.rcm-panel h2,.rcm-dialog h2 {font-size:1.1rem;font-weight:800;color:#166534;margin-bottom:.6rem}
+.rcm-panel h3,.rcm-comment-columns h3 {font-weight:750;margin:.7rem 0}
+.rcm-panel p {font-size:.85rem;line-height:1.6}
+.rcm-row {display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.rcm-button,.rcm-panel button,.rcm-comment button,.rcm-dialog button,#readerSession button {border:1px solid #cbd5e1;border-radius:.6rem;padding:.55rem .75rem;font-size:.8rem;font-weight:650;background:#f8fafc;color:#166534;min-height:40px}
+button:disabled {opacity:.55;cursor:wait}
+button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible {outline:3px solid #16a34a;outline-offset:3px}
+.rcm-comment button[aria-pressed=true] {background:#166534;color:white;border-color:#166534}
+.rcm-notice {position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);max-width:min(92vw,580px);width:max-content;background:#14532d;color:#fff;padding:1rem;border-radius:.75rem;z-index:11000;box-shadow:0 4px 20px #0003;font-size:.9rem}
+.rcm-notice.rcm-error {background:#991b1b}
+.rcm-notice[hidden],[hidden] {display:none!important}
+.rcm-comment-columns {display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.rcm-comment {padding:.9rem;border:1px solid #e2e8f0;border-radius:.8rem;background:#f8fafc;margin:.7rem 0;min-width:0;font-size:.85rem}
+.rcm-comment:focus {outline:3px solid #22c55e}
+.rcm-comment time {font-size:.7rem;color:#64748b}
+.rcm-comment-body {white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;margin:.75rem 0}
+.rcm-comment textarea,.rcm-dialog input,.rcm-dialog select {width:100%;padding:.7rem;border:1px solid #cbd5e1;border-radius:.5rem;background:white;color:#0f172a;margin:.5rem 0}
+.rcm-reply {margin-left:.6rem;border-left:3px solid #bbf7d0}
+.rcm-leader {padding:.8rem 0;border-top:1px solid #e2e8f0;overflow-wrap:anywhere}
+.rcm-leader-link {display:block;border-radius:.4rem;padding:.3rem}
+.rcm-leader-link:hover {background:#f0fdf4}
+.rcm-leader blockquote {font-size:.9rem;line-height:1.6}
+.rcm-leader strong {font-size:.8rem;color:#166534}
+.rcm-ticker {overflow:auto;margin:.8rem 0;max-width:100%;scrollbar-width:thin}
+.rcm-track {display:flex;width:max-content;animation:rcm-scroll 55s linear infinite;will-change:transform}
+.rcm-track-group {display:flex;gap:0;list-style:none;flex:none}
+.rcm-team {display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;min-width:0;font-size:.85rem}
+.rcm-track .rcm-team {width:245px;flex:none;white-space:nowrap}
+.rcm-team img {width:36px;height:36px;object-fit:contain;flex:none}
+.rcm-team strong {font-size:1.15rem;color:#15803d;min-width:1.5rem}
+.rcm-logo-fallback {font-size:.7rem;font-weight:bold;padding:.4rem;border:1px solid #cbd5e1;border-radius:.5rem}
+.rcm-ranking-list {display:grid;grid-template-columns:1fr 1fr;margin-top:.6rem;list-style:none}
+.rcm-ranking-list .rcm-team {border-bottom:1px solid #e2e8f0}
+.rcm-track.paused,.rcm-ticker:hover .rcm-track {animation-play-state:paused}
+@keyframes rcm-scroll {to {transform:translateX(-50%)}}
+.rcm-dialog {width:min(680px,95vw);max-height:90dvh;border:1px solid #cbd5e1;border-radius:1rem;padding:1.4rem;background:#fff;color:#334155;overflow:auto}
+.rcm-dialog::backdrop {background:#0f172aaa}
+.rcm-dialog button {margin:.3rem}
+.rcm-ranking-edit-row {display:grid;grid-template-columns:1.2rem minmax(0,1fr) 44px 44px;gap:.3rem;align-items:center}
+.rcm-username {font-size:.8rem;max-width:90px;overflow:hidden;text-overflow:ellipsis}
+#publishModal {z-index:10001}
+.dark .rcm-panel,.dark .rcm-dialog,.dark .rcm-comment {background:#0f172a;color:#cbd5e1;border-color:#334155}
+.dark .rcm-panel h2,.dark .rcm-dialog h2,.dark .rcm-leader strong {color:#86efac}
+.dark .rcm-panel button,.dark .rcm-comment button,.dark .rcm-dialog button,.dark .rcm-button,.dark #readerSession button {background:#1e293b;color:#bbf7d0;border-color:#475569}
+.dark .rcm-comment button[aria-pressed=true] {background:#166534;color:#fff}
+.dark .rcm-leader-link:hover {background:#1e293b}
+@media (max-width:640px) {.rcm-comment-columns,.rcm-ranking-list {grid-template-columns:1fr}.rcm-panel{padding:1rem}.rcm-comment{padding:.7rem}.rcm-track{animation:none;transform:none}.rcm-track-group:nth-child(2){display:none}#rankingPause{display:none}}
+@media (prefers-reduced-motion:reduce) {.rcm-track{animation:none;transform:none}.rcm-track-group:nth-child(2){display:none}#rankingPause{display:none}}

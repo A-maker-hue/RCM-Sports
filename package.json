@@ -1,0 +1,16 @@
+{
+  "name": "rcm-sports",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:css": "tailwindcss -i assets/styles-input.css -o assets/site.css --minify",
+    "test:database": "node tests/database.mjs",
+    "test:browser": "node tests/browser.cjs",
+    "test": "npm run test:database && npm run test:browser"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.9",
+    "playwright": "1.62.1",
+    "tailwindcss": "3.4.17"
+  }
+}

@@ -1,34 +1,14 @@
-RCM SPORTS
+# RCM Sports
 
-AE Sports es una plataforma creada para que las personas del trabajo puedan entrar a un mismo espacio, compartir contenido, interactuar con publicaciones y mantenerse conectadas de una forma sencilla.
+Noticias deportivas y una comunidad de lectores que comentan, responden y votan.
 
-## Objetivo del proyecto
+La web se sirve con GitHub Pages. Las publicaciones, comentarios, votos y NFL Power Rankings utilizan Supabase. El ranking se prepara como borrador y se publica como un conjunto de diez posiciones. Las cuentas lectoras no reciben permisos de administración.
 
-La idea principal de la página es crear una comunidad interna donde los compañeros de trabajo puedan:
+**Esta rama necesita revisar y ejecutar la migración de Supabase antes de publicarse.**
 
-- Crear una cuenta utilizando un nombre de usuario y contraseña.
-- Iniciar sesión en la plataforma.
-- Leer publicaciones y noticias.
-- Comentar en las publicaciones.
-- Dar likes a publicaciones y comentarios.
-- Compartir publicaciones mediante enlaces únicos.
-- Ver el contenido más relevante de la comunidad.
+Lee [la guía de entrega e instalación en español](docs/ENTREGA.md). Empieza por `supabase/00_inspeccion_solo_lectura.sql`; no ejecutes la migración sin revisar la estructura y los permisos existentes.
 
-## Administración
+No incluyas claves privadas ni claves `service_role` en esta web estática. La clave publicable identifica el proyecto; la protección de los datos depende de Auth, RLS y las funciones SQL.
 
-Los administradores cuentan con funciones adicionales para gestionar el contenido de la página, incluyendo:
-
-- Crear publicaciones.
-- Editar publicaciones existentes.
-- Cambiar o volver a subir imágenes sin tener que eliminar la publicación.
-- Eliminar publicaciones.
-- Gestionar el contenido que aparece en la página.
-
-## Propósito
-
-El propósito de AE Sports es ofrecer un espacio fácil de usar donde las personas del trabajo puedan entrar regularmente, consultar contenido, participar en conversaciones y mantenerse conectadas con la comunidad.
-
-## Estado del proyecto
-
-El proyecto se encuentra actualmente en desarrollo y se seguirán agregando nuevas funcionalidades y mejoras.
-::
+Desarrollo: `npm ci`, `npm run build:css`, `npx playwright install chromium`, `npm test`.
+La hoja de estilos compilada ya está incluida: GitHub Pages no requiere npm para servir el sitio.
