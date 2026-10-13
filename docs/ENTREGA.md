@@ -27,7 +27,7 @@ El archivo antiguo `Comentarios` se conserva sin modificar como referencia. La w
 
 ### Conservación de datos y compatibilidad
 
-- La API pública permitió confirmar que existe `comment_votes.value`. La migración adapta esa columna a `vote`, conservando sus valores. También admite instalaciones con `vote`, `direction` o `vote_value`; si hay ambigüedad, se detiene.
+- La API pública permitió confirmar que existe `comment_votes.value`. La migración revisada conserva la columna `value` y sus valores, y reutiliza la clave primaria existente. También admite instalaciones anteriores con `vote`, `direction` o `vote_value`; si hay ambigüedad, se detiene.
 - La consulta pública de artículos no devolvió filas. Eso **no demuestra** que la tabla esté vacía: podría ser resultado de sus políticas. La revisión del esquema desde SQL Editor sigue siendo necesaria.
 - Hay comentarios reales asociados al artículo antiguo `1`. Los seis ejemplos que estaban en HTML se importan como artículos normales, con UUID estable y `legacy_id`. Los comentarios conservan sus IDs y referencias originales. La vista de lectura resuelve esas referencias; no se reescriben ni borran comentarios.
 - Los enlaces anteriores `?article=1` a `?article=6` siguen abriendo el artículo correspondiente. Los nuevos enlaces usan el UUID permanente.
@@ -46,15 +46,15 @@ El archivo antiguo `Comentarios` se conserva sin modificar como referencia. La w
 6. Pulsa **Run**.
 7. Comparte el resultado o capturas de las tablas de resultados para revisar compatibilidad. Esa consulta obtiene nombres de columnas, restricciones, políticas y metadatos de funciones; no obtiene contraseñas ni claves. No envíes claves privadas.
 
-**No ejecutes todavía `01_comunidad_y_rankings.sql` hasta revisar esa inspección.** No pude consultar las políticas ni los triggers privados del proyecto. Una función antigua con privilegios elevados o un trigger sobre nuevas cuentas podría requerir adaptación adicional; esconder botones no resuelve eso.
+**Actualización del 13 de octubre:** ya recibí la inspección y probé la migración con sus columnas, restricciones y políticas. No aparecieron triggers en ese resultado. La prueba se ejecutó en una base aislada; no en tu proyecto real. Primero prepara la rama de GitHub siguiendo el apartado siguiente y coordina después la migración con la actualización de la web. Consulta `REVISION-SUPABASE.md`. Las funciones privilegiadas no incluidas en el resultado y los permisos efectivos del proyecto siguen fuera de esta comprobación.
 
-La migración ya se comprobó con un esquema de prueba compatible. También se detiene ante votos duplicados o inválidos, tipos incompatibles, un sistema de visibilidad desconocido, coincidencias de artículos o PostgreSQL anterior a 15. No borres datos para superar un error: comparte el mensaje y ajustaremos la migración.
+La migración ya se comprobó con el esquema que enviaste y con un segundo esquema de prueba compatible. También se detiene ante votos duplicados o inválidos, tipos incompatibles, un sistema de visibilidad desconocido, coincidencias de artículos o PostgreSQL anterior a 15. No borres datos para superar un error: comparte el mensaje y ajustaremos la migración.
 
 ## Subir los cambios a una rama de GitHub
 
 Esto guarda código en una rama para revisión. No implica fusionarlo.
 
-1. Descarga y extrae `RCM-Sports-mejoras.zip`.
+1. Descarga y extrae `RCM-Sports-mejoras-revisadas.zip`.
 2. Abre https://github.com/A-maker-hue/RCM-Sports y entra en **Code**.
 3. Pulsa el selector que muestra **main**.
 4. Escribe `mejoras/comunidad-nfl-20261012` y elige **Create branch … from main**.
@@ -71,6 +71,8 @@ En **Settings → Pages**, comprueba qué rama publica el sitio. No cambies la f
 
 ## Ejecutar la migración después de revisar la inspección
 
+**Orden de instalación:** prepara primero los archivos nuevos en la rama, sin publicarla. La migración importa a Supabase los seis ejemplos que hoy están en el HTML; la versión antigua puede mostrarlos duplicados durante el intervalo entre ejecutar SQL y actualizar la web. Por eso no ejecutes esta migración aisladamente varios días antes de cambiar el frontend. Ninguna de las dos acciones se ha hecho automáticamente.
+
 1. Guarda una copia de los datos actuales de `articles`, `comments`, `comment_votes` y `editors` mediante las opciones de exportación o respaldo disponibles en tu proyecto. Conserva también el SQL de las políticas actuales obtenido en la inspección.
 2. En SQL Editor, abre otra consulta nueva.
 3. Copia todo `supabase/01_comunidad_y_rankings.sql` y pulsa **Run** una sola vez.
@@ -81,7 +83,7 @@ En **Settings → Pages**, comprueba qué rama publica el sitio. No cambies la f
 
 No se necesita una clave `service_role` en el navegador, ni cambiar la clave pública ya existente. No se modifica ninguna cuenta ni se concede el rol de administrador a nuevos usuarios.
 
-Las políticas nuevas son restrictivas para bloquear escrituras indebidas incluso si hay políticas permisivas antiguas. Conservan la tabla `editors` como única autoridad. Las operaciones de administrador deben seguir verificándose después en el proyecto real, incluidas las funciones privilegiadas antiguas.
+Las políticas nuevas son restrictivas para bloquear escrituras indebidas incluso si hay políticas permisivas antiguas. Conservan la tabla `editors` como única autoridad. Las operaciones de administrador deben seguir verificándose después en el proyecto real, incluidas las funciones privilegiadas antiguas que no se hayan revisado.
 
 La migración es compatible con los IDs antiguos durante la transición. Los estilos y scripts nuevos requieren subir la carpeta `assets` completa junto con `index.html`.
 
@@ -142,7 +144,8 @@ El catálogo de 32 equipos se obtuvo de `teams_colors_logos.csv` de nflverse el 
 | Comprobación | Resultado y alcance |
 |---|---|
 | Migración sobre PostgreSQL PGlite | Pasó; también se volvió a ejecutar conservando datos |
-| Columna de votos heredada `value` | Adaptación probada con votos existentes, sin borrarlos |
+| Columna existente `value` | Conservación probada sin renombrar ni borrar votos |
+| Esquema proporcionado el 13 de octubre | Se reprodujeron sus columnas, restricciones y políticas; se confirmó el bloqueo previo de lectores y su corrección |
 | Dos usuarios y conteos públicos | Pasó en SQL local y en navegador con transporte simulado |
 | Cambiar, retirar y repetir petición de voto | Pasó; sin duplicados; error de guardado no cambia contador |
 | Aislamiento por usuario | SQL local bloquea votos de otro usuario |
@@ -185,10 +188,10 @@ La encuesta y el formulario de boletín existentes siguen siendo demostraciones 
 - `assets/nfl-teams.js`: catálogo y URLs de logos.
 - `assets/site.css`, `assets/styles-input.css`, `tailwind.config.cjs`: estilos compilados y sus fuentes.
 - `supabase/00_inspeccion_solo_lectura.sql`, `01_comunidad_y_rankings.sql`, `02_verificacion_solo_lectura.sql`.
-- `tests/database.mjs`, `tests/browser.cjs`: pruebas aisladas; nunca utilizan tu Supabase de producción.
+- `tests/database.mjs`, `tests/browser.cjs` y `tests/fixtures/observed-schema.sql`: pruebas aisladas; nunca utilizan tu Supabase de producción.
 - `package.json`, `package-lock.json`, `.gitignore`, `README.md` y esta guía.
 
-Para un revisor técnico: Node.js, `npm ci`, `npx playwright install chromium`, `npm test`. El test de navegador crea su propio servidor local en el puerto 8765. Los estilos se regeneran con `npm run build:css`. GitHub Pages sirve los archivos incluidos y no necesita ejecutar npm.
+Para un revisor técnico: Node.js, `npm ci`, `npx playwright install chromium`, `npm test` y `npm run test:database:observed`. El test de navegador crea su propio servidor local en el puerto 8765. Los estilos se regeneran con `npm run build:css`. GitHub Pages sirve los archivos incluidos y no necesita ejecutar npm.
 
 ## Cinco mejoras para después — no implementadas
 
