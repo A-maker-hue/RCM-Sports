@@ -7,8 +7,10 @@ const db=new PGlite();
 await db.exec(`create role anon;create role authenticated;
 create schema auth;create table auth.users(id uuid primary key);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+create function auth.jwt() returns jsonb language sql stable as $$ select jsonb_build_object('is_anonymous', coalesce(nullif(current_setting('test.is_anonymous',true),''),'false')::boolean) $$;
 grant usage on schema auth,public to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;
-create table public.editors(user_id uuid primary key references auth.users(id));
+`);
+await db.exec(process.env.RCM_OBSERVED_SCHEMA ? fs.readFileSync(new URL('./fixtures/observed-schema.sql',import.meta.url),'utf8') : `create table public.editors(user_id uuid primary key references auth.users(id));
 create table public.articles(id uuid primary key,title text,body text,category text,author text,image text,summary text,created_at timestamptz default now(),featured boolean default false,created_by uuid);
 create table public.comments(id uuid primary key default gen_random_uuid(),article_id text not null,parent_id uuid references public.comments(id) on delete cascade,user_id uuid references auth.users(id),author text,body text,created_at timestamptz default now());
 create table public.comment_votes(comment_id uuid references public.comments(id),user_id uuid references auth.users(id),value integer);
@@ -16,14 +18,20 @@ create table public.comment_votes(comment_id uuid references public.comments(id)
 alter table articles enable row level security;create policy old_all on articles for all using(true) with check(true);
 alter table editors enable row level security;create policy old_all on editors for all using(true) with check(true);
 grant all on articles,editors to authenticated;
-insert into auth.users values ('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002'),('00000000-0000-0000-0000-000000000003');
+`);
+await db.exec(`insert into auth.users values ('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002'),('00000000-0000-0000-0000-000000000003');
 insert into editors values('00000000-0000-0000-0000-000000000003');
-insert into articles(id,title,body) values('10000000-0000-0000-0000-000000000001','Test','Body');
+insert into articles(id,title,body,category,author,created_by) values('10000000-0000-0000-0000-000000000001','Test','Body','NFL','Test','00000000-0000-0000-0000-000000000003');
 insert into comments(id,article_id,user_id,author,body,created_at) values
 ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','Uno','First','2026-01-01'),
 ('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','Dos','Second','2026-01-02');
-insert into comment_votes values('20000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',1);`);
+insert into comment_votes(comment_id,user_id,value) values('20000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',1);`);
 await db.exec("insert into comments(id,article_id,author,body) values('30000000-0000-0000-0000-000000000001','1','Legacy','Existing legacy comment');");
+if (process.env.RCM_OBSERVED_SCHEMA) {
+ await db.exec("set role authenticated;select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false)");
+ await assert.rejects(()=>db.query("insert into comment_votes(comment_id,user_id,value) values('20000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001',1)"), /row-level security/);
+ await db.exec("reset role;select set_config('request.jwt.claim.sub','',false)");
+}
 const migration=fs.readFileSync(new URL('../supabase/01_comunidad_y_rankings.sql',import.meta.url),'utf8');
 await db.exec(migration);
 assert.equal((await db.query('select count(*)::int n from comment_votes')).rows[0].n,1);
@@ -43,10 +51,10 @@ await asUser(1,`select rcm_set_comment_vote('${cid}',0)`);
 assert.equal(Number((await asUser(0,'select * from rcm_comment_totals order by id')).rows[0].downvotes),0);
 await asUser(1,`select rcm_set_comment_vote('${cid}',1)`);await asUser(1,`select rcm_set_comment_vote('${cid}',1)`);
 assert.equal(Number((await asUser(0,'select * from rcm_comment_totals order by id')).rows[0].upvotes),2);
-await assert.rejects(()=>asUser(1,`insert into comment_votes values('${cid}','00000000-0000-0000-0000-000000000001',1)`));
-await assert.rejects(()=>asUser(1,`insert into comment_votes values('${cid2}','00000000-0000-0000-0000-000000000002',1)`));
+await assert.rejects(()=>asUser(1,`insert into comment_votes(comment_id,user_id,value) values('${cid}','00000000-0000-0000-0000-000000000001',1)`));
+await assert.rejects(()=>asUser(1,`insert into comment_votes(comment_id,user_id,value) values('${cid2}','00000000-0000-0000-0000-000000000002',1)`));
 let result=await asUser(1,`update articles set title='Hacked' returning id`);assert.equal(result.rows.length,0);
-await assert.rejects(()=>asUser(1,`insert into articles(id,title) values(gen_random_uuid(),'Hacked')`));
+await assert.rejects(()=>asUser(1,`insert into articles(id,title,body,category,author) values(gen_random_uuid(),'Hacked','Body','NFL','Reader')`));
 await assert.rejects(()=>asUser(1,`insert into editors values('00000000-0000-0000-0000-000000000001')`));
 await asUser(1,`delete from comment_votes where user_id='00000000-0000-0000-0000-000000000002'`);
 assert.equal(Number((await asUser(0,'select * from rcm_comment_totals order by id')).rows[0].upvotes),2);
@@ -75,7 +83,10 @@ leaders=(await asUser(0,'select rcm_community_leaders() d')).rows[0].d;assert.eq
 const legacy=(await asUser(0,"select article_id from rcm_comment_totals where id='30000000-0000-0000-0000-000000000001'")).rows[0];
 await asUser(1,`insert into comments(article_id,parent_id,user_id,author,body) values('${legacy.article_id}','30000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','Uno','Legacy reply')`);
 const reply=(await asUser(0,"select article_id from comments where body='Legacy reply'")).rows[0];assert.equal(reply.article_id,'1');
-await db.exec('reset role;');
+await asUser(1,`select set_config('test.is_anonymous','true',false)`);
+await assert.rejects(()=>asUser(1,`select rcm_set_comment_vote('${cid}',-1)`), /inicia sesión/);
+await assert.rejects(()=>asUser(1,`insert into comment_votes(comment_id,user_id,value) values('30000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001',1)`), /row-level security/);
+await db.exec("reset role;select set_config('test.is_anonymous','false',false)");
 assert.equal((await db.query('select count(*)::int n from nfl_teams')).rows[0].n,32);
-console.log('PASS: migration twice, old votes preserved, two users, change/remove/idempotent votes, duplicate rejection, own votes only, anonymous totals, reader/editor RLS, tie-breaking, hidden/deleted articles/comments, ranking authorization/atomic validation/conflicts.');
+console.log((process.env.RCM_OBSERVED_SCHEMA ? 'OBSERVED SCHEMA ' : 'BASELINE SCHEMA ')+'PASS: migration twice, old votes preserved, two users, change/remove/idempotent votes, duplicate rejection, own votes only, anonymous totals, reader/editor RLS, tie-breaking, hidden/deleted articles/comments, ranking authorization/atomic validation/conflicts.');
 await db.close();
